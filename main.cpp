@@ -11,6 +11,9 @@
 #include <stdio.h>
 #include <vector>
 #include "lodepng.h"
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
 
 float mixRate = 0.2f;
 //Реализация нажатий
@@ -249,19 +252,35 @@ int main()
         //Шейдер
         ourShader.Use();
         
-        //Обновление uniform (в ней цвет)
+        //Обновление uniform
+        //Цвет
         GLfloat timeValue = glfwGetTime();
         GLfloat greenValue = (sin(timeValue) / 2) + 0.5; //что-то 0.0 .. 1.0
+        //Трансформация
+        glm::mat4 trans(1.0f);
+        trans = glm::translate(trans, glm::vec3(0.5f, -0.5f, 0.0f));
+        trans = glm::rotate(trans, (GLfloat)glfwGetTime() * glm::radians(50.0f), glm::vec3(0.0, 0.0, 1.0));
+        trans = glm::scale(trans, glm::vec3(0.5, 0.5, 0.5));
+        
+        
+        
+        
+        //Цвет
         GLint vertexColorLocation = glGetUniformLocation(ourShader.Program, "ourColor");
+        //Сдвиг
         GLint vertexShiftLocation = glGetUniformLocation(ourShader.Program, "shiftX");
+        //Блендинг
         GLint mixRateLocation = glGetUniformLocation(ourShader.Program, "mixRate");
+        //Трансформация
+        GLuint transformLocation = glGetUniformLocation(ourShader.Program, "transform");
+        
         
         glUseProgram(ourShader.Program);
         
         glUniform4f(vertexColorLocation, 0.0f, greenValue, 0.0f, 1.0f);
         glUniform1f(vertexShiftLocation, 0.5); // ПОТОМ ЗАДАТЬ ЗНАЧЕНИЕ СДВИГА
         glUniform1f(mixRateLocation, mixRate);
-        
+        glUniformMatrix4fv(transformLocation, 1, GL_FALSE, glm::value_ptr(trans));
 
         glBindVertexArray(VAO);
         
@@ -283,8 +302,18 @@ int main()
         // glDrawArrays(GL_TRIANGLES, 0, 3);
         
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-        glBindVertexArray(0);
         
+        //Второй объект
+        
+        //Трансформация
+        trans = glm::mat4(1.0f);
+        trans = glm::translate(trans, glm::vec3(-0.5f, 0.5f, 0.0f));
+        float scaleRate = sin(glfwGetTime());
+        trans = glm::scale(trans, glm::vec3(scaleRate, scaleRate, scaleRate));
+        glUniformMatrix4fv(transformLocation, 1, GL_FALSE, glm::value_ptr(trans));
+        
+        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+        glBindVertexArray(0);
         //Смена буферов
         glfwSwapBuffers(window);
     }
