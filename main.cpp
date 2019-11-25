@@ -64,6 +64,9 @@ int main()
     
     glViewport(0, 0, screenWidth, screenHeight); //Левый нижний угол, ширина, высота
     
+    //Отслеживание глубины
+    glEnable(GL_DEPTH_TEST);
+    
     
     //Шейдеры
     Shader ourShader("/Users/JulieClark/Documents/ВМК/graphics/mr_Meeseeks/mr_Meeseeks/graph/shader.vs", "/Users/JulieClark/Documents/ВМК/graphics/mr_Meeseeks/mr_Meeseeks/graph/shader.frag");
@@ -131,6 +134,20 @@ int main()
          0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
         -0.5f,  0.5f,  0.5f,  0.0f, 0.0f,
         -0.5f,  0.5f, -0.5f,  0.0f, 1.0f
+    };
+    
+    //Сдвиги кубиков
+    glm::vec3 cubePositions[] = {
+      glm::vec3( 0.0f,  0.0f,  0.0f),
+      glm::vec3( 2.0f,  5.0f, -15.0f),
+      glm::vec3(-1.5f, -2.2f, -2.5f),
+      glm::vec3(-3.8f, -2.0f, -12.3f),
+      glm::vec3( 2.4f, -0.4f, -3.5f),
+      glm::vec3(-1.7f,  3.0f, -7.5f),
+      glm::vec3( 1.3f, -2.0f, -2.5f),
+      glm::vec3( 1.5f,  2.0f, -2.5f),
+      glm::vec3( 1.5f,  0.2f, -1.5f),
+      glm::vec3(-1.3f,  1.0f, -1.5f)
     };
     
     
@@ -302,7 +319,7 @@ int main()
         
         //Фоновый цвет
         glClearColor(0.3f, 0.3f, 0.3f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         
         //Шейдер
         ourShader.Use();
@@ -313,7 +330,7 @@ int main()
         GLfloat greenValue = (sin(timeValue) / 2) + 0.5; //что-то 0.0 .. 1.0
         //Локальные -> Мировые координаты
         glm::mat4 model(1.0f);
-        model = glm::rotate(model, (GLfloat)glfwGetTime() * glm::radians(50.0f), glm::vec3(0.5f, 1.0f, 0.0f));
+        //model = glm::rotate(model, (GLfloat)glfwGetTime() * glm::radians(50.0f), glm::vec3(0.5f, 1.0f, 0.0f));
         //model = glm::rotate(model, -glm::radians(55.0f), glm::vec3(1.0f, 0.0f, 0.0f));
         //Движение сцены относительно Камеры
         glm::mat4 view(1.0f);
@@ -373,12 +390,19 @@ int main()
         //glActiveTexture(GL_TEXTURE0); //Активируем текстурный блок
         //glBindTexture(GL_TEXTURE_2D, texture);
         
-        // previous version (only VAO without EBO)
-        //Тип, начальный индекс массива с вершинами, количество вершин для отрисовки
-        // glDrawArrays(GL_TRIANGLES, 0, 3);
-        
+        //Отрисовка
         //glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-        glDrawArrays(GL_TRIANGLES, 0, 36);
+        //glDrawArrays(GL_TRIANGLES, 0, 36);
+        for(GLuint i = 0; i < 10; i++)
+        {
+          glm::mat4 model(1.0f);
+          model = glm::translate(model, cubePositions[i]);
+          GLfloat angle = (GLfloat)glfwGetTime() * glm::radians(20.0f + i);
+          model = glm::rotate(model, angle, glm::vec3(1.0f, 0.3f, 0.5f));
+          glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(model));
+
+          glDrawArrays(GL_TRIANGLES, 0, 36);
+        }
         
         /*
         //Второй объект
