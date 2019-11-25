@@ -397,7 +397,7 @@ int main()
         {
           glm::mat4 model(1.0f);
           model = glm::translate(model, cubePositions[i]);
-          GLfloat angle = (GLfloat)glfwGetTime() * glm::radians(20.0f + i);
+          GLfloat angle = (GLfloat)glfwGetTime() * glm::radians(15.0f + i*35.0f);
           model = glm::rotate(model, angle, glm::vec3(1.0f, 0.3f, 0.5f));
           glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(model));
 
