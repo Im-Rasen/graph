@@ -22,6 +22,7 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 
 int main()
 {
+    //Настройки GLFW и GLEW
     //Инициализация GLFW
     glfwInit();
     //Настройка GLFW
@@ -47,8 +48,7 @@ int main()
         return -1;
     }
     glfwMakeContextCurrent(window);
-    
-    
+
     //Инициализация GLEW
     glewExperimental = GL_TRUE;
     if (glewInit() != GLEW_OK)
@@ -56,8 +56,7 @@ int main()
         std::cout << "Failed to initialize GLEW" << std::endl;
         return -1;
     }
-    
-    
+        
     //Размер отрисовываемого окна
     int screenWidth, screenHeight;
     glfwGetFramebufferSize(window, &screenWidth, &screenHeight);
@@ -66,30 +65,12 @@ int main()
     
     //Отслеживание глубины
     glEnable(GL_DEPTH_TEST);
-    
+    //Заполнение полигонов
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     
     //Шейдеры
     Shader ourShader("/Users/JulieClark/Documents/ВМК/graphics/mr_Meeseeks/mr_Meeseeks/graph/shader.vs", "/Users/JulieClark/Documents/ВМК/graphics/mr_Meeseeks/mr_Meeseeks/graph/shader.frag");
 
-    
-    //Четырехугольник
-    /*
-    GLfloat vertices[] = {
-        // Позиции          // Цвета             // Текстурные координаты
-         0.5f,  0.5f, 0.0f,   1.0f, 0.0f, 0.0f,   1.0f, 1.0f,   // Верхний правый
-         0.5f, -0.5f, 0.0f,   0.0f, 1.0f, 0.0f,   1.0f, 0.0f,   // Нижний правый
-        -0.5f, -0.5f, 0.0f,   0.0f, 0.0f, 1.0f,   0.0f, 0.0f,   // Нижний левый
-        -0.5f,  0.5f, 0.0f,   1.0f, 1.0f, 0.0f,   0.0f, 1.0f    // Верхний левый
-    };
-    
-    //Порядок обхода индексов
-    GLuint indices[] = {
-        0, 1, 3,   // Первый треугольник
-        1, 2, 3    // Второй треугольник
-    };
-    */
-    
-    
     //Куб
     float vertices[] = {
         // Позиции           // Текстурные
@@ -150,14 +131,12 @@ int main()
       glm::vec3(-1.3f,  1.0f, -1.5f)
     };
     
-    
-    
+    //VBO, VAO, EBO
     //Создаем Vertex Array Object
     GLuint VAO;
     glGenVertexArrays(1, &VAO);
     //Привязка VAO
     glBindVertexArray(VAO);
-    //{
     
     //Создаем Vertex Buffer Objects
     GLuint VBO;
@@ -197,7 +176,6 @@ int main()
     
     
     //___Текстуры___
-    
     //Идентификатор текстуры
     GLuint texture1;
     glGenTextures(1, &texture1);
@@ -206,20 +184,20 @@ int main()
     glBindTexture(GL_TEXTURE_2D, texture1);
     
     //Параметры семплинга
-       glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-       glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-       //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_MIRRORED_REPEAT); // 3D
-       /* Для GL_CLAMP_TO_BORDER параметра
-        float borderColor[] = { 1.0f, 1.0f, 0.0f, 1.0f };
-        glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
-        */
-       
-       // select modulate to mix texture with color for shading
-       //glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
-    
-       //Параметры МипМапов
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR); //GL_LINEAR_MIPMAP_LINEAR / GL_LINEAR / GL_NEAREST
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_MIRRORED_REPEAT); // 3D
+    /* Для GL_CLAMP_TO_BORDER параметра
+    float borderColor[] = { 1.0f, 1.0f, 0.0f, 1.0f };
+    glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
+    */
+
+    // select modulate to mix texture with color for shading
+    //glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+
+    //Параметры МипМапов
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR); //GL_LINEAR_MIPMAP_LINEAR / GL_LINEAR / GL_NEAREST
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     
     
     //Загрузка lodepng
@@ -233,8 +211,6 @@ int main()
     if(error) std::cout << "DECODER::ERROR " << error << ": " << lodepng_error_text(error) << std::endl;
     
     unsigned char* data = &image[0]; //RGBARGBARGBA...
-
-    //the pixels are now in the vector "image", 4 bytes per pixel, ordered RGBARGBA..., use it as texture, draw it, ...
     
     //Генерация текстуры
     //Цель,уровень мипмапа,формат хранения,ширина,высота,прост,формат и тип данных исходника,данные изображения
@@ -286,8 +262,6 @@ int main()
     if(error) std::cout << "DECODER::ERROR " << error << ": " << lodepng_error_text(error) << std::endl;
     
     data = &image[0]; //RGBARGBARGBA...
-
-    //the pixels are now in the vector "image", 4 bytes per pixel, ordered RGBARGBA..., use it as texture, draw it, ...
     
     //Генерация текстуры
     //Цель,уровень мипмапа,формат хранения,ширина,высота,прост,формат и тип данных исходника,данные изображения
@@ -304,11 +278,7 @@ int main()
     //Освобождение памяти и отвзяка от изображения
     std::vector<unsigned char>().swap(image);
     glBindTexture(GL_TEXTURE_2D, 0);
-    
-    //___Текстуры_End___
-    
-    
-    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    //---Texture::END---
     
     //Игровой цикл
     while(!glfwWindowShouldClose(window))
@@ -318,62 +288,49 @@ int main()
         glfwSetKeyCallback(window, key_callback);
         
         //Фоновый цвет
-        glClearColor(0.3f, 0.3f, 0.3f, 1.0f);
+        glClearColor(0.4f, 0.3f, 0.4f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         
         //Шейдер
         ourShader.Use();
         
         //Обновление uniform
+        
         //Цвет
         GLfloat timeValue = glfwGetTime();
         GLfloat greenValue = (sin(timeValue) / 2) + 0.5; //что-то 0.0 .. 1.0
+        
         //Локальные -> Мировые координаты
         glm::mat4 model(1.0f);
         //model = glm::rotate(model, (GLfloat)glfwGetTime() * glm::radians(50.0f), glm::vec3(0.5f, 1.0f, 0.0f));
         //model = glm::rotate(model, -glm::radians(55.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+        
         //Движение сцены относительно Камеры
         glm::mat4 view(1.0f);
-        view = glm::translate(view, glm::vec3(0.0f, 0.0f, -10.0f));
-        view = glm::rotate(view, (GLfloat)glfwGetTime() * 0.5f, glm::vec3(0.5, 0.3, 0.0));
+        view = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f));
+        //view = glm::rotate(view, (GLfloat)glfwGetTime() * 0.5f, glm::vec3(0.5, 0.3, 0.0));
+        
         //Проекция
         glm::mat4 projection(1.0f);
         projection = glm::perspective(glm::radians(45.0f), float(screenWidth) / float(screenHeight), 0.1f, 100.0f);
+        
         //Трансформация
+        /*
         glm::mat4 trans(1.0f);
         trans = glm::translate(trans, glm::vec3(0.5f, -0.5f, 0.0f));
         trans = glm::rotate(trans, (GLfloat)glfwGetTime() * glm::radians(50.0f), glm::vec3(0.0, 0.0, 1.0));
         trans = glm::scale(trans, glm::vec3(0.5, 0.5, 0.5));
-        
-        
-        
-        
-        //Цвет
-        GLint vertexColorLocation = glGetUniformLocation(ourShader.Program, "ourColor");
-        //Сдвиг
-        GLint vertexShiftLocation = glGetUniformLocation(ourShader.Program, "shiftX");
-        //Блендинг
-        GLint mixRateLocation = glGetUniformLocation(ourShader.Program, "mixRate");
-        //Трансформация
-        GLuint transformLocation = glGetUniformLocation(ourShader.Program, "transform");
-        //Локальные -> Мировые координаты
-        GLuint modelLocation = glGetUniformLocation(ourShader.Program, "model");
-        //Движение сцены относительно Камеры
-        GLuint viewLocation = glGetUniformLocation(ourShader.Program, "view");
-        //Проекция
-        GLuint projectionLocation = glGetUniformLocation(ourShader.Program, "projection");
-        
+         */
         
         
         glUseProgram(ourShader.Program);
         
-        glUniform4f(vertexColorLocation, 0.0f, greenValue, 0.0f, 1.0f);
-        glUniform1f(vertexShiftLocation, 0.5); // ПОТОМ ЗАДАТЬ ЗНАЧЕНИЕ СДВИГА
-        glUniform1f(mixRateLocation, mixRate);
-        glUniformMatrix4fv(transformLocation, 1, GL_FALSE, glm::value_ptr(trans));
-        glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(model));
-        glUniformMatrix4fv(viewLocation, 1, GL_FALSE, glm::value_ptr(view));
-        glUniformMatrix4fv(projectionLocation, 1, GL_FALSE, glm::value_ptr(projection));
+        ourShader.setVec4("ourColor", 0.0f, greenValue, 0.0f, 1.0f);
+        ourShader.setFloat("shiftX", 0.5);
+        ourShader.setFloat("mixRate", mixRate);
+        //ourShader.setMat4("transform", trans);
+        ourShader.setMat4("view", view);
+        ourShader.setMat4("projection", projection);
         
 
         glBindVertexArray(VAO);
@@ -394,13 +351,13 @@ int main()
         //Отрисовка
         //glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
         //glDrawArrays(GL_TRIANGLES, 0, 36);
-        for(GLuint i = 0; i < 10; i++)
+        for(GLuint i = 0; i < 5; i++)
         {
-          glm::mat4 model(1.0f);
-          model = glm::translate(model, cubePositions[i]);
-          GLfloat angle = (GLfloat)glfwGetTime() * glm::radians(15.0f + i*10.0f);
-          model = glm::rotate(model, angle, glm::vec3(1.0f, 0.3f, 0.5f));
-          glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(model));
+            glm::mat4 model(1.0f);
+            model = glm::translate(model, cubePositions[i]);
+            GLfloat angle = (GLfloat)glfwGetTime() * glm::radians(15.0f + i*10.0f);
+            model = glm::rotate(model, angle, glm::vec3(1.0f, 0.3f, 0.5f));
+            ourShader.setMat4("model", model);
 
           glDrawArrays(GL_TRIANGLES, 0, 36);
         }

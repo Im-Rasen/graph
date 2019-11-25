@@ -5,6 +5,9 @@
 #include <fstream>
 #include <sstream>
 #include <iostream>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
 
 #include <GL/glew.h> // Подключаем glew для того, чтобы получить все необходимые заголовочные файлы OpenGL
 
@@ -99,6 +102,65 @@ public:
     
     // Использование программы
     void Use() { glUseProgram(this->Program); }
+    
+    
+    void setInt(const std::string &name, int value) const
+    {
+        GLuint nameLocation = glGetUniformLocation(this->Program, name.c_str());
+        glUniform1i(nameLocation, value);
+    }
+    void setFloat(const std::string &name, float value) const
+    {
+        GLuint nameLocation = glGetUniformLocation(this->Program, name.c_str());
+        glUniform1f(nameLocation, value);
+    }
+    //-------------------------------------------------------------------------
+    void setVec2(const std::string &name, const glm::vec2 &value) const
+    {
+        GLuint nameLocation = glGetUniformLocation(this->Program, name.c_str());
+        glUniform2fv(nameLocation, 1, &value[0]);
+    }
+    void setVec2(const std::string &name, float x, float y) const
+    {
+        GLuint nameLocation = glGetUniformLocation(this->Program, name.c_str());
+        glUniform2f(nameLocation, x, y);
+    }
+    void setVec3(const std::string &name, const glm::vec3 &value) const
+    {
+        GLuint nameLocation = glGetUniformLocation(this->Program, name.c_str());
+        glUniform3fv(nameLocation, 1, &value[0]);
+    }
+    void setVec3(const std::string &name, float x, float y, float z) const
+    {
+        GLuint nameLocation = glGetUniformLocation(this->Program, name.c_str());
+        glUniform3f(nameLocation, x, y, z);
+    }
+    void setVec4(const std::string &name, const glm::vec4 &value) const
+    {
+        GLuint nameLocation = glGetUniformLocation(this->Program, name.c_str());
+        glUniform4fv(nameLocation, 1, &value[0]);
+    }
+    void setVec4(const std::string &name, float x, float y, float z, float w) const
+    {
+        GLuint nameLocation = glGetUniformLocation(this->Program, name.c_str());
+        glUniform4f(nameLocation, x, y, z, w);
+    }
+    //-------------------------------------------------------------------------
+    void setMat2(const std::string &name, const glm::mat2 &mat) const
+    {
+        GLuint nameLocation = glGetUniformLocation(this->Program, name.c_str());
+        glUniformMatrix2fv(nameLocation, 1, GL_FALSE, &mat[0][0]);
+    }
+    void setMat3(const std::string &name, const glm::mat3 &mat) const
+    {
+        GLuint nameLocation = glGetUniformLocation(this->Program, name.c_str());
+        glUniformMatrix3fv(nameLocation, 1, GL_FALSE, &mat[0][0]);
+    }
+    void setMat4(const std::string &name, const glm::mat4 &mat) const
+    {
+        GLuint nameLocation = glGetUniformLocation(this->Program, name.c_str());
+        glUniformMatrix4fv(nameLocation, 1, GL_FALSE, &mat[0][0]);
+    }
 };
 
 #endif
