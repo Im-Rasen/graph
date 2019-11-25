@@ -334,7 +334,8 @@ int main()
         //model = glm::rotate(model, -glm::radians(55.0f), glm::vec3(1.0f, 0.0f, 0.0f));
         //Движение сцены относительно Камеры
         glm::mat4 view(1.0f);
-        view = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f));
+        view = glm::translate(view, glm::vec3(0.0f, 0.0f, -10.0f));
+        view = glm::rotate(view, (GLfloat)glfwGetTime() * 0.5f, glm::vec3(0.5, 0.3, 0.0));
         //Проекция
         glm::mat4 projection(1.0f);
         projection = glm::perspective(glm::radians(45.0f), float(screenWidth) / float(screenHeight), 0.1f, 100.0f);
@@ -397,7 +398,7 @@ int main()
         {
           glm::mat4 model(1.0f);
           model = glm::translate(model, cubePositions[i]);
-          GLfloat angle = (GLfloat)glfwGetTime() * glm::radians(15.0f + i*35.0f);
+          GLfloat angle = (GLfloat)glfwGetTime() * glm::radians(15.0f + i*10.0f);
           model = glm::rotate(model, angle, glm::vec3(1.0f, 0.3f, 0.5f));
           glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(model));
 
