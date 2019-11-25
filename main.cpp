@@ -36,11 +36,14 @@ GLfloat pitch = 0.0f;
 GLfloat lastX;
 GLfloat lastY;
 bool firstMouse = true;
+GLfloat fov = 45.0f;
 
 //Реализация нажатий
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode);
 //Значения углов от мыши
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
+//Колесико мыши
+void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void doMovement();
 
 
@@ -314,6 +317,8 @@ int main()
         //Захват мыши
         glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
         glfwSetCursorPosCallback(window, mouse_callback);
+        //Колесико
+        glfwSetScrollCallback(window, scroll_callback);
         //WASD
         doMovement();
         
@@ -367,7 +372,8 @@ int main()
         
         //Проекция
         glm::mat4 projection(1.0f);
-        projection = glm::perspective(glm::radians(45.0f), float(screenWidth) / float(screenHeight), 0.1f, 100.0f);
+        //fov,,distance_min,distance_max
+        projection = glm::perspective(glm::radians(fov), float(screenWidth) / float(screenHeight), 0.1f, 100.0f);
         
         //Трансформация
         /*
@@ -516,4 +522,14 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos){
     front.y = sin(glm::radians(pitch));
     front.z = cos(glm::radians(pitch)) * sin(glm::radians(yaw));
     cameraFront = glm::normalize(front);
+}
+
+void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
+{
+  if(fov >= 1.0f && fov <= 45.0f)
+      fov -= yoffset;
+  if(fov <= 1.0f)
+      fov = 1.0f;
+  if(fov >= 45.0f)
+      fov = 45.0f;
 }
