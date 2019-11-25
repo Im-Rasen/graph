@@ -16,6 +16,9 @@
 #include <glm/gtc/type_ptr.hpp>
 
 float mixRate = 0.2f;
+glm::vec3 cameraPosition  = glm::vec3(0.0f, 0.0f,  3.0f);
+glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
+glm::vec3 cameraUp    = glm::vec3(0.0f, 1.0f,  0.0f);
 //Реализация нажатий
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode);
 
@@ -307,8 +310,27 @@ int main()
         
         //Движение сцены относительно Камеры
         glm::mat4 view(1.0f);
-        view = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f));
+        //view = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f));
         //view = glm::rotate(view, (GLfloat)glfwGetTime() * 0.5f, glm::vec3(0.5, 0.3, 0.0));
+        //Камера (Грама-Шмидта)
+        GLfloat radius = 10.0f;
+        //GLfloat camX = sin(glfwGetTime()) * radius;
+        //GLfloat camY = 5.0f;
+        //GLfloat camZ = cos(glfwGetTime()) * radius;
+        cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
+        //cameraPosition = glm::vec3(camX, camY, camZ);
+        glm::vec3 cameraTarget = glm::vec3(0.0f, 0.0f, 0.0f);
+        glm::vec3 cameraDirection = glm::normalize(cameraPosition - cameraTarget); // Камера -> Z+
+        glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f);
+        glm::vec3 cameraRight = glm::normalize(glm::cross(up, cameraDirection)); // Камера -> X+
+        cameraUp = glm::cross(cameraDirection, cameraRight); // Камера -> Y+
+        //Позиция камеры, Цель камеры, Орт вверх
+        //view = glm::lookAt(cameraPosition, cameraTarget, up);
+        view = glm::lookAt(cameraPosition, cameraPosition + cameraFront, up);
+        // [R_x R_y R_z 0]   [1 0 0 -P_x]
+        // [U_x U_y U_z 0] * [0 1 0 -P_y]
+        // [D_x D_y D_z 0]   [0 0 1 -P_z]
+        // [0   0   0   1]   [0 0 0   1 ]
         
         //Проекция
         glm::mat4 projection(1.0f);
@@ -321,6 +343,7 @@ int main()
         trans = glm::rotate(trans, (GLfloat)glfwGetTime() * glm::radians(50.0f), glm::vec3(0.0, 0.0, 1.0));
         trans = glm::scale(trans, glm::vec3(0.5, 0.5, 0.5));
          */
+        
         
         
         glUseProgram(ourShader.Program);
@@ -351,7 +374,7 @@ int main()
         //Отрисовка
         //glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
         //glDrawArrays(GL_TRIANGLES, 0, 36);
-        for(GLuint i = 0; i < 5; i++)
+        for(GLuint i = 0; i < 10; i++)
         {
             glm::mat4 model(1.0f);
             model = glm::translate(model, cubePositions[i]);
@@ -408,5 +431,15 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
     if (mixRate <= 0.0f)
         mixRate = 0.0f;
     }
+    
+    GLfloat cameraSpeed = 0.05f;
+    if(key == GLFW_KEY_W)
+        cameraPosition += cameraSpeed * cameraFront;
+    if(key == GLFW_KEY_S)
+        cameraPosition -= cameraSpeed * cameraFront;
+    if(key == GLFW_KEY_A)
+        cameraPosition -= glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
+    if(key == GLFW_KEY_D)
+        cameraPosition += glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
         
 }
