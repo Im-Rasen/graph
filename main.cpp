@@ -15,12 +15,33 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-float mixRate = 0.2f;
+//Время, прошедшее между последним и текущим кадром
+GLfloat deltaTime = 0.0f;
+//Время вывода последнего кадра
+GLfloat lastFrame = 0.0f;
+//Степень смешивания тестур
+float mixRate = 0.0f;
+//Буфер нажатий
+bool keys[1024];
+//Камера
 glm::vec3 cameraPosition  = glm::vec3(0.0f, 0.0f,  3.0f);
-glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
-glm::vec3 cameraUp    = glm::vec3(0.0f, 1.0f,  0.0f);
+glm::vec3 cameraUp        = glm::vec3(0.0f, 1.0f,  0.0f);
+glm::vec3 cameraTarget    = glm::vec3(0.0f, 0.0f, 0.0f);
+glm::vec3 cameraDirection = glm::normalize(cameraPosition - cameraTarget);
+glm::vec3 cameraFront     = -cameraDirection;
+//Углы
+GLfloat yaw   = -90.0f;
+GLfloat pitch = 0.0f;
+//Смещение мыши
+GLfloat lastX;
+GLfloat lastY;
+bool firstMouse = true;
+
 //Реализация нажатий
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode);
+//Значения углов от мыши
+void mouse_callback(GLFWwindow* window, double xpos, double ypos);
+void doMovement();
 
 
 int main()
@@ -40,6 +61,7 @@ int main()
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
     //Выключение возможности изменения размера окна
     glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
+   
     
     
     //Создание объекта окна
@@ -289,6 +311,16 @@ int main()
         //Клавиатура
         glfwPollEvents();
         glfwSetKeyCallback(window, key_callback);
+        //Захват мыши
+        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+        glfwSetCursorPosCallback(window, mouse_callback);
+        //WASD
+        doMovement();
+        
+        //Вычисление времени
+        GLfloat currentFrame = glfwGetTime();
+        deltaTime = currentFrame - lastFrame;
+        lastFrame = currentFrame;
         
         //Фоновый цвет
         glClearColor(0.4f, 0.3f, 0.4f, 1.0f);
@@ -317,9 +349,9 @@ int main()
         //GLfloat camX = sin(glfwGetTime()) * radius;
         //GLfloat camY = 5.0f;
         //GLfloat camZ = cos(glfwGetTime()) * radius;
-        cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
+        //cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
         //cameraPosition = glm::vec3(camX, camY, camZ);
-        glm::vec3 cameraTarget = glm::vec3(0.0f, 0.0f, 0.0f);
+        //glm::vec3 cameraTarget = glm::vec3(0.0f, 0.0f, 0.0f);
         glm::vec3 cameraDirection = glm::normalize(cameraPosition - cameraTarget); // Камера -> Z+
         glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f);
         glm::vec3 cameraRight = glm::normalize(glm::cross(up, cameraDirection)); // Камера -> X+
@@ -331,6 +363,7 @@ int main()
         // [U_x U_y U_z 0] * [0 1 0 -P_y]
         // [D_x D_y D_z 0]   [0 0 1 -P_z]
         // [0   0   0   1]   [0 0 0   1 ]
+
         
         //Проекция
         glm::mat4 projection(1.0f);
@@ -412,6 +445,11 @@ int main()
 //Реализация нажатий
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode)
 {
+    if(action == GLFW_PRESS)
+      keys[key] = true;
+    else if(action == GLFW_RELEASE)
+      keys[key] = false;
+    
     // Когда пользователь нажимает ESC, мы устанавливаем свойство WindowShouldClose в true,
     // и приложение после этого закроется
     if(key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
@@ -431,15 +469,51 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
     if (mixRate <= 0.0f)
         mixRate = 0.0f;
     }
+}
+
+void doMovement()
+{
+  // Управление камерой
+  GLfloat cameraSpeed = 5.0f * deltaTime;
+  if(keys[GLFW_KEY_W])
+      cameraPosition += cameraSpeed * cameraFront;
+  if(keys[GLFW_KEY_S])
+      cameraPosition -= cameraSpeed * cameraFront;
+  if(keys[GLFW_KEY_A])
+      cameraPosition -= glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
+  if(keys[GLFW_KEY_D])
+      cameraPosition += glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
+}
+
+void mouse_callback(GLFWwindow* window, double xpos, double ypos){
+    if (firstMouse)
+    {
+      lastX = xpos;
+      lastY = ypos;
+      firstMouse = false;
+    }
+    GLfloat xoffset = xpos - lastX;
+    //Оконные Y-координаты возрастают с верху вниз
+    GLfloat yoffset = -(ypos - lastY);
+    lastX = xpos;
+    lastY = ypos;
+
+    GLfloat sensitivity = 0.05f;
+    xoffset *= sensitivity;
+    yoffset *= sensitivity;
     
-    GLfloat cameraSpeed = 0.05f;
-    if(key == GLFW_KEY_W)
-        cameraPosition += cameraSpeed * cameraFront;
-    if(key == GLFW_KEY_S)
-        cameraPosition -= cameraSpeed * cameraFront;
-    if(key == GLFW_KEY_A)
-        cameraPosition -= glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
-    if(key == GLFW_KEY_D)
-        cameraPosition += glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
-        
+    yaw   += xoffset;
+    pitch += yoffset;
+    
+    if(pitch > 89.0f)
+      pitch =  89.0f;
+    if(pitch < -89.0f)
+      pitch = -89.0f;
+    
+    //Вычисление угла
+    glm::vec3 front;
+    front.x = cos(glm::radians(pitch)) * cos(glm::radians(yaw));
+    front.y = sin(glm::radians(pitch));
+    front.z = cos(glm::radians(pitch)) * sin(glm::radians(yaw));
+    cameraFront = glm::normalize(front);
 }
