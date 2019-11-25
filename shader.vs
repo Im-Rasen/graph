@@ -11,10 +11,13 @@ out vec2 TexCoord;
 
 uniform float shiftX;
 uniform mat4 transform;
+uniform mat4 model;
+uniform mat4 view;
+uniform mat4 projection;
 
 void main()
 {
-    ourPosition = transform * vec4(position[0], position[1], position[2], 1.0); //+shiftX
+    ourPosition = projection * view * model * vec4(position[0], position[1], position[2], 1.0); //+shiftX
     gl_Position = ourPosition;
     ourColor = color; // Значение цвета от вершинных данных
     //"vertexColor = vec4(0.5f, 0.0f, 0.0f, 1.0f);"

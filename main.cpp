@@ -59,10 +59,10 @@ int main()
     
     
     //Размер отрисовываемого окна
-    int width, height;
-    glfwGetFramebufferSize(window, &width, &height);
+    int screenWidth, screenHeight;
+    glfwGetFramebufferSize(window, &screenWidth, &screenHeight);
     
-    glViewport(0, 0, width, height); //Левый нижний угол, ширина, высота
+    glViewport(0, 0, screenWidth, screenHeight); //Левый нижний угол, ширина, высота
     
     
     //Шейдеры
@@ -208,7 +208,7 @@ int main()
     
     //Загрузка lodepng
     //Декодирование
-    error = lodepng::decode(image, texwidth, texheight, "/Users/JulieClark/Documents/ВМК/graphics/mr_Meeseeks/mr_Meeseeks/graph/awesomeface.png");
+    error = lodepng::decode(image, texwidth, texheight, "/Users/JulieClark/Documents/ВМК/graphics/mr_Meeseeks/mr_Meeseeks/graph/stay_cozy.png");
 
     //Ошибки
     if(error) std::cout << "DECODER::ERROR " << error << ": " << lodepng_error_text(error) << std::endl;
@@ -256,6 +256,15 @@ int main()
         //Цвет
         GLfloat timeValue = glfwGetTime();
         GLfloat greenValue = (sin(timeValue) / 2) + 0.5; //что-то 0.0 .. 1.0
+        //Локальные -> Мировые координаты
+        glm::mat4 model(1.0f);
+        model = glm::rotate(model, -glm::radians(55.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+        //Движение сцены относительно Камеры
+        glm::mat4 view(1.0f);
+        view = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f));
+        //Проекция
+        glm::mat4 projection(1.0f);
+        projection = glm::perspective(glm::radians(45.0f), float(screenWidth) / float(screenHeight), 0.1f, 100.0f);
         //Трансформация
         glm::mat4 trans(1.0f);
         trans = glm::translate(trans, glm::vec3(0.5f, -0.5f, 0.0f));
@@ -273,6 +282,13 @@ int main()
         GLint mixRateLocation = glGetUniformLocation(ourShader.Program, "mixRate");
         //Трансформация
         GLuint transformLocation = glGetUniformLocation(ourShader.Program, "transform");
+        //Локальные -> Мировые координаты
+        GLuint modelLocation = glGetUniformLocation(ourShader.Program, "model");
+        //Движение сцены относительно Камеры
+        GLuint viewLocation = glGetUniformLocation(ourShader.Program, "view");
+        //Проекция
+        GLuint projectionLocation = glGetUniformLocation(ourShader.Program, "projection");
+        
         
         
         glUseProgram(ourShader.Program);
@@ -281,6 +297,10 @@ int main()
         glUniform1f(vertexShiftLocation, 0.5); // ПОТОМ ЗАДАТЬ ЗНАЧЕНИЕ СДВИГА
         glUniform1f(mixRateLocation, mixRate);
         glUniformMatrix4fv(transformLocation, 1, GL_FALSE, glm::value_ptr(trans));
+        glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(model));
+        glUniformMatrix4fv(viewLocation, 1, GL_FALSE, glm::value_ptr(view));
+        glUniformMatrix4fv(projectionLocation, 1, GL_FALSE, glm::value_ptr(projection));
+        
 
         glBindVertexArray(VAO);
         
@@ -303,6 +323,7 @@ int main()
         
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
         
+        /*
         //Второй объект
         
         //Трансформация
@@ -313,6 +334,7 @@ int main()
         glUniformMatrix4fv(transformLocation, 1, GL_FALSE, glm::value_ptr(trans));
         
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+        */
         glBindVertexArray(0);
         //Смена буферов
         glfwSwapBuffers(window);
