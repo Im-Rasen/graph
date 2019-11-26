@@ -81,6 +81,7 @@ public:
         {
             glGetShaderInfoLog(fragment, 512, NULL, infoLog);
             std::cout << "ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n" << infoLog << std::endl;
+            std::cout << fragmentPath << std::endl;
         }
 
         // Шейдерная программа

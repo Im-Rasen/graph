@@ -4,16 +4,18 @@
 
 //uniform vec4 ourColor;
 
-in vec3 ourColor;
-in vec4 ourPosition;
-in vec2 TexCoord;
-
+//in vec3 ourColor;
+//in vec4 ourPosition;
+//in vec2 TexCoord;
+uniform vec3 trueColor;
 out vec4 color;
 
-uniform sampler2D ourTexture1;
-uniform sampler2D ourTexture2;
+//uniform sampler2D ourTexture1;
+//uniform sampler2D ourTexture2;
 
-uniform float mixRate;
+//uniform float mixRate;
+
+
 
 void main()
 {
@@ -21,5 +23,8 @@ void main()
     //color = ourColor;
     //color = ourPosition;
     //color = texture(ourTexture, TexCoord) * vec4(ourColor, 1.0f);
-    color = mix(texture(ourTexture1, TexCoord), texture(ourTexture2, TexCoord), mixRate);
+    //color = mix(texture(ourTexture1, TexCoord), texture(ourTexture2, TexCoord), mixRate);
+    vec4 theColor = vec4(trueColor, 0.5);
+    color = theColor;
+    //color = vec4(1.0f, 1.0f, 1.0f, 1.0f);
 }
