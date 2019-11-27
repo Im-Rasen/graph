@@ -42,6 +42,7 @@ struct ProjectLight{
     vec3  position;
     vec3  direction;
     float cutOff;
+    float outerCutOff;
     
     vec3 ambient;
     vec3 diffuse;
@@ -122,7 +123,10 @@ void main()
     vec3 projLightDirection = normalize(projLight.position - worldPosition);
     
     float theta = dot(projLightDirection, normalize(-projLight.direction));
-    if(theta > projLight.cutOff) // cos
+    float epsilon = projLight.cutOff - projLight.outerCutOff;
+    float projIntensity = clamp((theta - projLight.outerCutOff) / epsilon, 0.0, 1.0);
+    
+    if(theta > projLight.outerCutOff) // cos
     {
         //Diffuse
         float projDiffuseRate = max(dot(norm, projLightDirection), 0.0);
@@ -143,10 +147,12 @@ void main()
     ambient  *= attenuation;
     diffuse  *= attenuation;
     specular *= attenuation;
-    projDiffuse  *= projAttenuation;
+    projDiffuse *= projAttenuation;
+    projDiffuse *= projIntensity;
     projSpecular *= projAttenuation;
-    vec3 trueColor = projAmbient + projDiffuse + projSpecular + dirAmbient + dirDiffuse + dirSpecular;
-    //+ ambient + diffuse + specular
+    projSpecular *= projIntensity;
+    vec3 trueColor = projAmbient + projDiffuse + projSpecular + dirAmbient + dirDiffuse + dirSpecular + ambient + diffuse + specular;
+    //
     vec4 theColor = vec4(trueColor, 1.0);
     color = theColor;
 }
