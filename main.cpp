@@ -38,7 +38,7 @@ GLfloat lastY;
 bool firstMouse = true;
 GLfloat fov = 45.0f;
 //Освещение
-glm::vec3 lightPosition(1.2f, 1.0f, 2.0f);
+glm::vec3 lightPosition(1.5f, 1.5f, 1.5f);
 
 //Реализация нажатий
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode);
@@ -298,7 +298,7 @@ int main()
     
     //Загрузка lodepng
     //Декодирование
-    error = lodepng::decode(image, texwidth, texheight, "/Users/JulieClark/Documents/ВМК/graphics/mr_Meeseeks/mr_Meeseeks/graph/tracery.png");
+    error = lodepng::decode(image, texwidth, texheight, "/Users/JulieClark/Documents/ВМК/graphics/mr_Meeseeks/mr_Meeseeks/graph/container2_specular.png");
 
     //Ошибки
     if(error) std::cout << "DECODER::ERROR " << error << ": " << lodepng_error_text(error) << std::endl;
@@ -349,12 +349,37 @@ int main()
         //Шейдер
         
         ourShader.Use();
-        ourShader.setVec3("material.ambient",  1.0f, 0.5f, 0.31f);
+        //ourShader.setVec3("material.ambient",  1.0f, 0.5f, 0.31f);
+        ourShader.setInt("material.ambient", 0);
         //ourShader.setVec3("material.diffuse",  1.0f, 0.5f, 0.31f);
         ourShader.setInt("material.diffuse", 0);
-        ourShader.setVec3("material.specular", 0.5f, 0.5f, 0.5f);
+        //ourShader.setVec3("material.specular", 0.5f, 0.5f, 0.5f);
+        ourShader.setInt("material.specular", 1);
         ourShader.setFloat("material.shininess", 32.0f);
+        
         ourShader.setVec3("light.specular", 1.0f, 1.0f, 1.0f);
+        ourShader.setVec3("light.ambient",  0.2f, 0.2f, 0.2f);
+        ourShader.setVec3("light.diffuse",  0.5f, 0.5f, 0.5f);
+        ourShader.setFloat("light.constant",  1.0f);
+        ourShader.setFloat("light.linear",    0.09f);
+        ourShader.setFloat("light.quadratic", 0.032f);
+        
+        ourShader.setVec3("dirLight.direction", -0.2f, -1.0f, -0.3f);
+        ourShader.setVec3("dirLight.ambient", 0.1f, 0.1f, 0.1f);
+        ourShader.setVec3("dirLight.diffuse", 0.3f, 0.3f, 0.3f);
+        ourShader.setVec3("dirLight.specular", 1.0f, 1.0f, 1.0f);
+        
+        ourShader.setVec3("projLight.position",  cameraPosition);
+        ourShader.setVec3("projLight.direction", cameraFront);
+        ourShader.setFloat("projLight.cutOff",   glm::cos(glm::radians(12.5f)));
+        ourShader.setVec3("projLight.ambient", 0.1f, 0.1f, 0.1f);
+        ourShader.setVec3("projLight.diffuse", 0.5f, 0.5f, 0.5f);
+        ourShader.setVec3("projLight.specular", 1.0f, 1.0f, 1.0f);
+        ourShader.setFloat("projLight.constant",  1.0f);
+        ourShader.setFloat("projLight.linear",    0.14f);
+        ourShader.setFloat("projLight.quadratic", 0.07f);
+               
+        
         
         /*
         glm::vec3 lightColor;
@@ -367,8 +392,7 @@ int main()
         ourShader.setVec3("light.diffuse", diffuseColor);
          */
         
-        ourShader.setVec3("light.ambient",  0.2f, 0.2f, 0.2f);
-        ourShader.setVec3("light.diffuse",  0.5f, 0.5f, 0.5f);
+        
         
         
         ourShader.setVec3("lightPosition", lightPosition);
@@ -446,25 +470,25 @@ int main()
 
         glBindVertexArray(objectVAO);
         
-        /*
-        Текстуры
+        
+        //Текстуры
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, texture1);
-        glUniform1i(glGetUniformLocation(ourShader.Program, "ourTexture1"), 0);
+        //glUniform1i(glGetUniformLocation(ourShader.Program, "diffuseTexture"), 0);
         
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, texture2);
-        glUniform1i(glGetUniformLocation(ourShader.Program, "ourTexture2"), 1);
-         */
+        //glUniform1i(glGetUniformLocation(ourShader.Program, "specularTexture"), 1);
+         
 
         
-        glActiveTexture(GL_TEXTURE0); //Активируем текстурный блок
-        glBindTexture(GL_TEXTURE_2D, texture1);
+        //glActiveTexture(GL_TEXTURE0); //Активируем текстурный блок
+        //glBindTexture(GL_TEXTURE_2D, texture1);
         
         //Отрисовка
         //glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-        glDrawArrays(GL_TRIANGLES, 0, 36);
-        /*
+        //glDrawArrays(GL_TRIANGLES, 0, 36);
+        
         for(GLuint i = 0; i < 10; i++)
         {
             glm::mat4 model(1.0f);
@@ -475,13 +499,12 @@ int main()
 
           glDrawArrays(GL_TRIANGLES, 0, 36);
         }
-        */
         
         //Лампа
         lampShader.Use();
-        GLfloat shiftX = 1.2f * sin(glfwGetTime()/3); // * radius;
+        GLfloat shiftX = 1.5f * sin(glfwGetTime()/3); // * radius;
         GLfloat shiftY = lightPosition.y;
-        GLfloat shiftZ = 2.0f * cos(glfwGetTime()/3); // * radius;
+        GLfloat shiftZ = 1.5f * cos(glfwGetTime()/3); // * radius;
         glm::vec3 shift = glm::vec3(shiftX, shiftY, shiftZ);
         lightPosition = shift;
         model = glm::mat4(1.0f);
