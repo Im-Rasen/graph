@@ -1,4 +1,5 @@
 #version 330 core
+#define NR_POINT_LIGHTS 4
 //"in vec4 vertexColor;"
 //uniform vec4 ourColor;
 //in vec3 ourColor;
@@ -26,7 +27,7 @@ struct Light {
     float quadratic;
 };
 
-uniform Light light;
+uniform Light light[NR_POINT_LIGHTS];
 
 struct DirectLight {
     vec3 direction;
@@ -65,7 +66,7 @@ in vec2 TexCoord;
 
 uniform vec3 lightColor;
 uniform vec3 objectColor;
-uniform vec3 lightPosition;
+//uniform vec3 lightPosition;
 uniform vec3 viewPosition;
 
 
@@ -74,7 +75,9 @@ uniform vec3 viewPosition;
 
 //uniform float mixRate;
 
-
+vec3 CalcDirLight(DirectLight dirLight, vec3 norm, vec3 viewDirection);
+vec3 CalcPointLight(Light light, vec3 norm, vec3 worldPosition, vec3 viewDirection);
+vec3 CalcProjLight(ProjectLight projLight, vec3 norm, vec3 worldPosition, vec3 viewDirection);
 
 void main()
 {
@@ -86,23 +89,20 @@ void main()
     //color = vec4(1.0f, 1.0f, 1.0f, 1.0f);
     
     vec3 norm = normalize(Normal);
-    
-    //Лампа
-    float distance = length(light.position - worldPosition);
-    float attenuation = 1.0 / (light.constant + light.linear * distance +
-    light.quadratic * (distance * distance));
-    //Ambient
-    vec3 ambient = light.ambient * vec3(texture(material.ambient, TexCoord));
-    //Diffuse
-    vec3 lightDirection = normalize(lightPosition - worldPosition); // Вектор от объекта к источнику
-    float diffuseRate = max(dot(norm, lightDirection), 0.0);
-    vec3 diffuse = light.diffuse * diffuseRate * vec3(texture(material.diffuse, TexCoord));
-    //Specular
     vec3 viewDirection = normalize(viewPosition - worldPosition);
-    vec3 reflectDirection = reflect(-lightDirection, norm); // Первый аргумент - от источника к объекту
-        float spec = pow(max(dot(viewDirection, reflectDirection), 0.0), material.shininess);
-    vec3 specular = light.specular * spec * vec3(texture(material.specular, TexCoord));
     
+    vec3 trueColor = vec3(0.0);
+    trueColor += CalcDirLight(dirLight, norm, viewDirection);
+    for (int i = 0; i < NR_POINT_LIGHTS; i++)
+        trueColor += CalcPointLight(light[i], norm, worldPosition, viewDirection);
+    trueColor += CalcProjLight(projLight, norm, worldPosition, viewDirection);
+
+    vec4 theColor = vec4(trueColor, 1.0);
+    color = theColor;
+}
+
+vec3 CalcDirLight(DirectLight dirLight, vec3 norm, vec3 viewDirection)
+{
     //Направленный свет
     //Ambient
     vec3 dirAmbient = dirLight.ambient * vec3(texture(material.ambient, TexCoord));
@@ -114,8 +114,39 @@ void main()
     vec3 dirReflectDirection = reflect(-dirLightDirection, norm);
     float dirSpec = pow(max(dot(viewDirection, dirReflectDirection), 0.0), material.shininess);
     vec3 dirSpecular = dirLight.specular * dirSpec * vec3(texture(material.specular, TexCoord));
+    return (dirAmbient + dirDiffuse + dirSpecular);
+}
+
+
+vec3 CalcPointLight(Light light, vec3 norm, vec3 worldPosition, vec3 viewDirection)
+{
+    //Лампа
+    //Ambient
+    vec3 ambient = light.ambient * vec3(texture(material.ambient, TexCoord));
+    //Diffuse
+    vec3 lightDirection = normalize(light.position - worldPosition); // Вектор от объекта к источнику
+    float diffuseRate = max(dot(norm, lightDirection), 0.0);
+    vec3 diffuse = light.diffuse * diffuseRate * vec3(texture(material.diffuse, TexCoord));
+    //Specular
+    vec3 reflectDirection = reflect(-lightDirection, norm); // Первый аргумент - от источника к объекту
+    float spec = pow(max(dot(viewDirection, reflectDirection), 0.0), material.shininess);
+    vec3 specular = light.specular * spec * vec3(texture(material.specular, TexCoord));
+    //Attenuation
+    float distance = length(light.position - worldPosition);
+    float attenuation = 1.0 / (light.constant + light.linear * distance +
+    light.quadratic * (distance * distance));
     
-    // Прожектор
+    ambient  *= attenuation;
+    diffuse  *= attenuation;
+    specular *= attenuation;
+    
+    return (ambient + diffuse + specular);
+    
+    
+}
+
+vec3 CalcProjLight(ProjectLight projLight, vec3 norm, vec3 worldPosition, vec3 viewDirection)
+{
     vec3 projDiffuse = vec3(0.0f);
     vec3 projSpecular = vec3(0.0f);
     vec3 projAmbient = projLight.ambient * vec3(texture(material.diffuse, TexCoord));
@@ -141,18 +172,10 @@ void main()
     float projAttenuation = 1.0 / (projLight.constant + projLight.linear * projDistance +
     projLight.quadratic * (projDistance * projDistance));
     
-    
-
-    //Финал
-    ambient  *= attenuation;
-    diffuse  *= attenuation;
-    specular *= attenuation;
     projDiffuse *= projAttenuation;
     projDiffuse *= projIntensity;
     projSpecular *= projAttenuation;
     projSpecular *= projIntensity;
-    vec3 trueColor = projAmbient + projDiffuse + projSpecular + dirAmbient + dirDiffuse + dirSpecular + ambient + diffuse + specular;
-    //
-    vec4 theColor = vec4(trueColor, 1.0);
-    color = theColor;
+    
+    return (projAmbient + projDiffuse + projSpecular);
 }

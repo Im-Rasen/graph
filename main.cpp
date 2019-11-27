@@ -2,6 +2,7 @@
 // GLEW
 #define GLEW_STATIC
 #define cimg_use_jpeg
+#define NR_POINT_LIGHTS 4
 
 #include <iostream>
 #include <math.h>
@@ -38,7 +39,7 @@ GLfloat lastY;
 bool firstMouse = true;
 GLfloat fov = 45.0f;
 //Освещение
-glm::vec3 lightPosition(1.5f, 1.5f, 1.5f);
+//glm::vec3 lightPosition(1.5f, 1.5f, 1.5f);
 
 //Реализация нажатий
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode);
@@ -160,6 +161,13 @@ int main()
       glm::vec3( 1.5f,  2.0f, -2.5f),
       glm::vec3( 1.5f,  0.2f, -1.5f),
       glm::vec3(-1.3f,  1.0f, -1.5f)
+    };
+    
+    glm::vec3 pointLightPositions[] = {
+        glm::vec3( 0.7f,  0.2f,  2.0f),
+        glm::vec3( 2.3f, -3.3f, -4.0f),
+        glm::vec3(-4.0f,  2.0f, -12.0f),
+        glm::vec3( 0.0f,  0.0f, -3.0f)
     };
     
     //VBO, VAO, EBO
@@ -357,18 +365,46 @@ int main()
         ourShader.setInt("material.specular", 1);
         ourShader.setFloat("material.shininess", 32.0f);
         
-        ourShader.setVec3("light.specular", 1.0f, 1.0f, 1.0f);
-        ourShader.setVec3("light.ambient", 0.2f, 0.2f, 0.2f);
-        ourShader.setVec3("light.diffuse", 0.5f, 0.5f, 0.5f);
-        ourShader.setFloat("light.constant", 1.0f);
-        ourShader.setFloat("light.linear", 0.09f);
-        ourShader.setFloat("light.quadratic", 0.032f);
-        
+        //Направленный свет
         ourShader.setVec3("dirLight.direction", -0.2f, -1.0f, -0.3f);
         ourShader.setVec3("dirLight.ambient", 0.1f, 0.1f, 0.1f);
         ourShader.setVec3("dirLight.diffuse", 0.3f, 0.3f, 0.3f);
         ourShader.setVec3("dirLight.specular", 1.0f, 1.0f, 1.0f);
         
+        //Точечный свет
+        ourShader.setVec3("light[0].position", pointLightPositions[0]);
+        ourShader.setVec3("light[0].specular", 1.0f, 1.0f, 1.0f);
+        ourShader.setVec3("light[0].ambient", 0.2f, 0.2f, 0.2f);
+        ourShader.setVec3("light[0].diffuse", 0.5f, 0.5f, 0.5f);
+        ourShader.setFloat("light[0].constant", 1.0f);
+        ourShader.setFloat("light[0].linear", 0.09f);
+        ourShader.setFloat("light[0].quadratic", 0.032f);
+        
+        ourShader.setVec3("light[1].position", pointLightPositions[1]);
+        ourShader.setVec3("light[1].specular", 1.0f, 1.0f, 1.0f);
+        ourShader.setVec3("light[1].ambient", 0.2f, 0.2f, 0.2f);
+        ourShader.setVec3("light[1].diffuse", 0.5f, 0.5f, 0.5f);
+        ourShader.setFloat("light[1].constant", 1.0f);
+        ourShader.setFloat("light[1].linear", 0.09f);
+        ourShader.setFloat("light[1].quadratic", 0.032f);
+        
+        ourShader.setVec3("light[2].position", pointLightPositions[2]);
+        ourShader.setVec3("light[2].specular", 1.0f, 1.0f, 1.0f);
+        ourShader.setVec3("light[2].ambient", 0.2f, 0.2f, 0.2f);
+        ourShader.setVec3("light[2].diffuse", 0.5f, 0.5f, 0.5f);
+        ourShader.setFloat("light[2].constant", 1.0f);
+        ourShader.setFloat("light[2].linear", 0.09f);
+        ourShader.setFloat("light[2].quadratic", 0.032f);
+        
+        ourShader.setVec3("light[3].position", pointLightPositions[3]);
+        ourShader.setVec3("light[3].specular", 1.0f, 1.0f, 1.0f);
+        ourShader.setVec3("light[3].ambient", 0.2f, 0.2f, 0.2f);
+        ourShader.setVec3("light[3].diffuse", 0.5f, 0.5f, 0.5f);
+        ourShader.setFloat("light[3].constant", 1.0f);
+        ourShader.setFloat("light[3].linear", 0.09f);
+        ourShader.setFloat("light[3].quadratic", 0.032f);
+        
+        //Фонарик
         ourShader.setVec3("projLight.position", cameraPosition);
         ourShader.setVec3("projLight.direction", cameraFront);
         ourShader.setFloat("projLight.cutOff", glm::cos(glm::radians(12.5f)));
@@ -396,7 +432,7 @@ int main()
         
         
         
-        ourShader.setVec3("lightPosition", lightPosition);
+        //ourShader.setVec3("lightPosition", lightPosition);
         glm::vec3 viewPosition = glm::vec3(cameraPosition); //???
         ourShader.setVec3("viewPosition", viewPosition);
         
@@ -503,28 +539,34 @@ int main()
         
         //Лампа
         lampShader.Use();
+        /*
         GLfloat shiftX = 1.5f * sin(glfwGetTime()/3); // * radius;
         GLfloat shiftY = lightPosition.y;
         GLfloat shiftZ = 1.5f * cos(glfwGetTime()/3); // * radius;
         glm::vec3 shift = glm::vec3(shiftX, shiftY, shiftZ);
         lightPosition = shift;
-        model = glm::mat4(1.0f);
-        model = glm::translate(model, lightPosition);
+         
         model = glm::rotate(model, (GLfloat)glfwGetTime() * glm::radians(50.0f), glm::vec3(0.5f, 1.0f, 0.0f));
-        model = glm::scale(model, glm::vec3(0.2f));
-        lampShader.setMat4("model", model);
-        lampShader.setMat4("view", view);
-        lampShader.setMat4("projection", projection);
+         */
+        
         
         //lampShader.setFloat("shiftX", shiftX);
         //lampShader.setFloat("shiftZ", shiftZ);
         
-        
-        
-        //glUseProgram(lampShader.Program);
+        lampShader.setMat4("view", view);
+        lampShader.setMat4("projection", projection);
         
         glBindVertexArray(lightVAO);
-        glDrawArrays(GL_TRIANGLES, 0, 36);
+        for (int i = 0; i < NR_POINT_LIGHTS; i++)
+        {
+            model = glm::mat4(1.0f);
+            model = glm::translate(model, pointLightPositions[i]);
+            model = glm::scale(model, glm::vec3(0.2f));
+            lampShader.setMat4("model", model);
+            glDrawArrays(GL_TRIANGLES, 0, 36);
+        }
+        
+        
         //Смена буферов
         glfwSwapBuffers(window);
     }
@@ -579,7 +621,8 @@ void doMovement()
       cameraPosition += glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
 }
 
-void mouse_callback(GLFWwindow* window, double xpos, double ypos){
+void mouse_callback(GLFWwindow* window, double xpos, double ypos)
+{
     if (firstMouse)
     {
       lastX = xpos;
