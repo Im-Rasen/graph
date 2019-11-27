@@ -13,5 +13,5 @@ uniform float shiftZ;
 
 void main()
 {
-    gl_Position = projection * view * model * vec4(position[0] + shiftX, position[1], position[2] + shiftZ, 1.0f);
+    gl_Position = projection * view * model * vec4(position[0], position[1], position[2], 1.0f);
 }

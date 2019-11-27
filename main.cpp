@@ -350,6 +350,8 @@ int main()
         
         ourShader.Use();
         ourShader.setVec3("lightPosition", lightPosition);
+        glm::vec3 viewPosition = glm::vec3(cameraPosition); //???
+        ourShader.setVec3("viewPosition", viewPosition);
         //ourShader.setFloat("shiftX", 0.5);
         //ourShader.setFloat("mixRate", mixRate);
         
@@ -379,7 +381,7 @@ int main()
         //view = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f));
         //view = glm::rotate(view, (GLfloat)glfwGetTime() * 0.5f, glm::vec3(0.5, 0.3, 0.0));
         //Камера (Грама-Шмидта)
-        GLfloat radius = 10.0f;
+        GLfloat radius = 2.0f;
         //GLfloat camX = sin(glfwGetTime()) * radius;
         //GLfloat camY = 5.0f;
         //GLfloat camZ = cos(glfwGetTime()) * radius;
@@ -453,21 +455,24 @@ int main()
         */
         
         //Лампа
-        
         lampShader.Use();
+        GLfloat shiftX = 1.2f * sin(glfwGetTime()/3); // * radius;
+        GLfloat shiftY = lightPosition.y;
+        GLfloat shiftZ = 2.0f * cos(glfwGetTime()/3); // * radius;
+        glm::vec3 shift = glm::vec3(shiftX, shiftY, shiftZ);
+        lightPosition = shift;
         model = glm::mat4(1.0f);
-        //model = glm::translate(model, lightPosition);
-        //model = glm::rotate(model, (GLfloat)glfwGetTime() * glm::radians(50.0f), glm::vec3(0.5f, 1.0f, 0.0f));
+        model = glm::translate(model, lightPosition);
+        model = glm::rotate(model, (GLfloat)glfwGetTime() * glm::radians(50.0f), glm::vec3(0.5f, 1.0f, 0.0f));
         model = glm::scale(model, glm::vec3(0.2f));
         lampShader.setMat4("model", model);
         lampShader.setMat4("view", view);
         lampShader.setMat4("projection", projection);
-        GLfloat shiftX = sin(glfwGetTime()) * radius;
-        GLfloat shiftZ = cos(glfwGetTime()) * radius;
-        lampShader.setFloat("shiftX", shiftX);
-        lampShader.setFloat("shiftZ", shiftZ);
-        glm::vec3 shift = glm::vec3(shiftX, 0.0f, shiftZ);
-        lightPosition += shift;
+        
+        //lampShader.setFloat("shiftX", shiftX);
+        //lampShader.setFloat("shiftZ", shiftZ);
+        
+        
         
         //glUseProgram(lampShader.Program);
         

@@ -8,11 +8,12 @@
 out vec4 color;
 
 in vec3 Normal;
-in vec3 worldPosition;
+in vec3 worldPosition; // Позиция текущего фрагмента
 
 uniform vec3 lightColor;
 uniform vec3 objectColor;
 uniform vec3 lightPosition;
+uniform vec3 viewPosition;
 
 
 //uniform sampler2D ourTexture1;
@@ -33,13 +34,20 @@ void main()
     
     float ambientStrength = 0.1f;
     vec3 ambient = ambientStrength * lightColor;
-
+    
     vec3 norm = normalize(Normal);
-    vec3 lightDir = normalize(lightPosition - worldPosition); // Вектор от источника к объекту
-    float diffuseRate = max(dot(norm, lightDir), 0.0);
+    vec3 lightDirection = normalize(lightPosition - worldPosition); // Вектор от объекта к источнику
+    float diffuseRate = max(dot(norm, lightDirection), 0.0);
     vec3 diffuse = diffuseRate * lightColor;
     
-    vec3 trueColor = (ambient + diffuse) * objectColor;
+    float specularStrength = 0.5f;
+    vec3 viewDirection = normalize(viewPosition - worldPosition);
+    vec3 reflectDirection = reflect(-lightDirection, norm); // Первый аргумент - от источника к объекту
+    
+    float spec = pow(max(dot(viewDirection, reflectDirection), 0.0), 32); // 32 - сила блика
+    vec3 specular = specularStrength * spec * lightColor;
+
+    vec3 trueColor = (ambient + diffuse + specular) * objectColor;
     vec4 theColor = vec4(trueColor, 1.0);
     color = theColor;
 }
