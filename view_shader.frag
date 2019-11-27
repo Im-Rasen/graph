@@ -5,35 +5,15 @@
 //in vec4 ourPosition;
 //in vec2 TexCoord;
 
-struct Material {
-    vec3 ambient;
-    vec3 diffuse;
-    vec3 specular;
-    float shininess;
-};
-  
-uniform Material material;
-
-struct Light {
-    vec3 position;
-
-    vec3 ambient;
-    vec3 diffuse;
-    vec3 specular;
-};
-
-uniform Light light;
-
-
 out vec4 color;
 
 in vec3 Normal;
-in vec3 worldPosition; // Позиция текущего фрагмента
+in vec3 viewPosition; // Позиция текущего фрагмента
 
 uniform vec3 lightColor;
 uniform vec3 objectColor;
 uniform vec3 lightPosition;
-uniform vec3 viewPosition;
+//uniform vec3 viewPosition;
 
 
 //uniform sampler2D ourTexture1;
@@ -52,20 +32,22 @@ void main()
     //color = mix(texture(ourTexture1, TexCoord), texture(ourTexture2, TexCoord), mixRate);
     //color = vec4(1.0f, 1.0f, 1.0f, 1.0f);
     
-    vec3 ambient = light.ambient * material.ambient;
+    float ambientStrength = 0.1f;
+    vec3 ambient = ambientStrength * lightColor;
     
     vec3 norm = normalize(Normal);
-    vec3 lightDirection = normalize(lightPosition - worldPosition); // Вектор от объекта к источнику
+    vec3 lightDirection = normalize(lightPosition - viewPosition); // Вектор от объекта к источнику
     float diffuseRate = max(dot(norm, lightDirection), 0.0);
-    vec3 diffuse = light.diffuse * (diffuseRate * material.diffuse);
+    vec3 diffuse = diffuseRate * lightColor;
     
-    vec3 viewDirection = normalize(viewPosition - worldPosition);
+    float specularStrength = 0.5f;
+    vec3 viewDirection = normalize(-viewPosition);
     vec3 reflectDirection = reflect(-lightDirection, norm); // Первый аргумент - от источника к объекту
     
-    float spec = pow(max(dot(viewDirection, reflectDirection), 0.0), material.shininess);
-    vec3 specular = light.specular * (spec * material.specular);
+    float spec = pow(max(dot(viewDirection, reflectDirection), 0.0), 32); // 32 - сила блика
+    vec3 specular = specularStrength * spec * lightColor;
 
-    vec3 trueColor = ambient + diffuse + specular;
+    vec3 trueColor = (ambient + diffuse + specular) * objectColor;
     vec4 theColor = vec4(trueColor, 1.0);
     color = theColor;
 }
