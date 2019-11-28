@@ -99,13 +99,18 @@ int main()
     //Заполнение полигонов
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     //Трафаретное тестирование
-    glEnable(GL_STENCIL_TEST);
+    //glEnable(GL_STENCIL_TEST);
     //Если оба теста пройдены, ставим значение из glStencilFunc (ниже)
-    glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+    //glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+    //Режим смешивания
+    //glEnable(GL_BLEND);
+    //Прозрачность источника - для источника, 1-прозрачность источника - для приемника
+    //glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    //glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ZERO);
+    //glBlendEquation(GL_FUNC_SUBTRACT);
     
     //Шейдеры
     Shader ourShader("/Users/JulieClark/Documents/ВМК/graphics/mr_Meeseeks/mr_Meeseeks/graph/shader.vs", "/Users/JulieClark/Documents/ВМК/graphics/mr_Meeseeks/mr_Meeseeks/graph/shader.frag");
-    Shader stencilShader("/Users/JulieClark/Documents/ВМК/graphics/mr_Meeseeks/mr_Meeseeks/graph/shader.vs", "/Users/JulieClark/Documents/ВМК/graphics/mr_Meeseeks/mr_Meeseeks/graph/stencil_shader.frag");
     //Куб
     float vertices[] = {
         // Позиции           // Текстурные // Нормали
@@ -163,6 +168,17 @@ int main()
          5.0f, -0.5001f, -5.0f,  2.0f, 2.0f
     };
     
+    float vegetationVertices[] = {
+       //Позиции            //Текстурные
+       0.0f,  0.5f,  0.0f,  0.0f, 1.0f,
+       0.0f, -0.5f,  0.0f,  0.0f, 0.0f,
+       1.0f, -0.5f,  0.0f,  1.0f, 0.0f,
+
+       0.0f,  0.5f,  0.0f,  0.0f, 1.0f,
+       1.0f, -0.5f,  0.0f,  1.0f, 0.0f,
+       1.0f,  0.5f,  0.0f,  1.0f, 1.0f
+    };
+    
     //VBO, VAO, EBO
     //Создаем Vertex Array Object
     GLuint objectVAO;
@@ -205,6 +221,26 @@ int main()
     glVertexAttribPointer(1, 2, GL_FLOAT,GL_FALSE, 5 * sizeof(GLfloat), (GLvoid*)(3 * sizeof(GLfloat)));
     glEnableVertexAttribArray(1);
     
+    //Травка
+    GLuint vegetationVAO;
+    glGenVertexArrays(1, &vegetationVAO);
+    
+    GLuint vegetationVBO;
+    glGenBuffers(1, &vegetationVBO);
+    glBindBuffer(GL_ARRAY_BUFFER, vegetationVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vegetationVertices), vegetationVertices, GL_STATIC_DRAW);
+    glBindVertexArray(vegetationVAO);
+    //Устанавливаем указатели на вершинные атрибуты //location = 0, vec3,,normalize,step_between_data_packs,смещение_начала_данных
+    // Атрибут с координатами
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (GLvoid*)0);
+    glEnableVertexAttribArray(0);
+    //Атрибут с текстурой
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (GLvoid*)(3 * sizeof(GLfloat)));
+    glEnableVertexAttribArray(1);
+    
+    glBindVertexArray(0);
+    
+    
     
     //___Текстуры___
     //Идентификатор текстуры
@@ -228,7 +264,7 @@ int main()
     unsigned texwidth, texheight;
 
     //Декодирование
-    unsigned error = lodepng::decode(image, texwidth, texheight, "/Users/JulieClark/Documents/ВМК/graphics/mr_Meeseeks/mr_Meeseeks/graph/basket.png");
+    unsigned error = lodepng::decode(image, texwidth, texheight, "/Users/JulieClark/Documents/ВМК/graphics/mr_Meeseeks/mr_Meeseeks/graph/marble.png");
 
     //Ошибки
     if(error) std::cout << "DECODER::ERROR " << error << ": " << lodepng_error_text(error) << std::endl;
@@ -293,8 +329,59 @@ int main()
     //Освобождение памяти и отвзяка от изображения
     std::vector<unsigned char>().swap(image);
     glBindTexture(GL_TEXTURE_2D, 0);
+    
+    //---------------------------------------------------------
+    
+    //Идентификатор текстуры
+    GLuint texture3;
+    glGenTextures(1, &texture3);
+    //Привязка конкретной текстуры
+    glActiveTexture(GL_TEXTURE0); //Активируем текстурный блок
+    glBindTexture(GL_TEXTURE_2D, texture3);
+    
+    //Параметры семплинга
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+       
+    //Параметры МипМапов
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);//GL_LINEAR_MIPMAP_LINEAR / GL_LINEAR / GL_NEAREST
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    
+    
+    //Загрузка lodepng
+    //Декодирование
+    error = lodepng::decode(image, texwidth, texheight, "/Users/JulieClark/Documents/ВМК/graphics/mr_Meeseeks/mr_Meeseeks/graph/grassivo.png");
+
+    //Ошибки
+    if(error) std::cout << "DECODER::ERROR " << error << ": " << lodepng_error_text(error) << std::endl;
+    
+    data = &image[0]; //RGBARGBARGBA...
+    
+    //Генерация текстуры
+    //Цель,уровень мипмапа,формат хранения,ширина,высота,прост,формат и тип данных исходника,данные изображения
+    if (data){
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, texwidth, texheight, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+    //Генерация мипмапов
+    glGenerateMipmap(GL_TEXTURE_2D);
+    }
+    else
+    {
+        std::cout << "ERROR IN TEXTURE LOADING" << std::endl;
+    }
+    
+    //Освобождение памяти и отвзяка от изображения
+    std::vector<unsigned char>().swap(image);
+    glBindTexture(GL_TEXTURE_2D, 0);
+    
     //---Texture::END---
     
+    //Позиции травки
+       std::vector<glm::vec3> vegetation;
+       vegetation.push_back(glm::vec3(-1.5f,  0.0f, -0.48f));
+       vegetation.push_back(glm::vec3( 1.5f,  0.0f,  0.51f));
+       vegetation.push_back(glm::vec3( 0.0f,  0.0f,  0.7f));
+       vegetation.push_back(glm::vec3(-0.3f,  0.0f, -2.3f));
+       vegetation.push_back(glm::vec3( 0.5f,  0.0f, -0.6f));
     
     //Игровой цикл
     while(!glfwWindowShouldClose(window))
@@ -317,7 +404,7 @@ int main()
         
         //Фоновый цвет
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT) ; //| GL_STENCIL_BUFFER_BIT)
         
         
         //Шейдер
@@ -352,8 +439,6 @@ int main()
         glBindVertexArray(floorVAO);
         //Текстура
         glBindTexture(GL_TEXTURE_2D, texture2);
-        //Трафарет
-        glStencilMask(0x00); //Выключена запись в буфер
         //Пол 1
         ourShader.setMat4("model", glm::mat4(1.0f));
         glDrawArrays(GL_TRIANGLES, 0, 6);
@@ -362,9 +447,6 @@ int main()
         glBindVertexArray(objectVAO);
         //Текстура
         glBindTexture(GL_TEXTURE_2D, texture1);
-        //Трафарет
-        glStencilFunc(GL_ALWAYS, 1, 0xFF); //Для всего нарисованного
-        glStencilMask(0xFF); //Включена запись в буфер
         //Куб 1
         glm::mat4 model = glm::mat4(1.0f);
         model = glm::translate(model, glm::vec3(-1.0f, 0.0f, -1.0f));
@@ -376,33 +458,17 @@ int main()
         ourShader.setMat4("model", model);
         glDrawArrays(GL_TRIANGLES, 0, 36);
         
-        //Обводка
-        glStencilFunc(GL_NOTEQUAL, 1, 0xFF);
-        glStencilMask(0x00); //Выключена запись в буфер
-        glDisable(GL_DEPTH_TEST);
-        
-        stencilShader.Use();
-        
-        glBindVertexArray(objectVAO);
-        stencilShader.setMat4("view", view);
-        stencilShader.setMat4("projection", projection);
-        glBindTexture(GL_TEXTURE_2D, texture1);
-        float scale = 1.1;
-        //Куб 1
-        model = glm::mat4(1.0f);
-        model = glm::translate(model, glm::vec3(-1.0f, 0.0f, -1.0f));
-        model = glm::scale(model, glm::vec3(scale));
-        stencilShader.setMat4("model", model);
-        glDrawArrays(GL_TRIANGLES, 0, 36);
-        //Куб2
-        model = glm::mat4(1.0f);
-        model = glm::translate(model, glm::vec3(2.0f, 0.0f, 0.0f));
-        model = glm::scale(model, glm::vec3(scale));
-        stencilShader.setMat4("model", model);
-        glDrawArrays(GL_TRIANGLES, 0, 36);
-        
-        glStencilMask(0xFF); //Включена запись в буфер
-        glEnable(GL_DEPTH_TEST);
+        //Травка
+        glBindVertexArray(vegetationVAO);
+        glBindTexture(GL_TEXTURE_2D, texture3);
+        for(unsigned int i = 0; i < vegetation.size(); i++)
+        {
+            model = glm::mat4(1.0f);
+            model = glm::translate(model, vegetation[i]);
+            ourShader.setMat4("model", model);
+            glDrawArrays(GL_TRIANGLES, 0, 6);
+        }
+
         
         //Смена буферов
         glfwSwapBuffers(window);
