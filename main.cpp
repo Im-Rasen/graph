@@ -98,9 +98,14 @@ int main()
     glEnable(GL_DEPTH_TEST);
     //Заполнение полигонов
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    //Трафаретное тестирование
+    glEnable(GL_STENCIL_TEST);
+    //Если оба теста пройдены, ставим значение из glStencilFunc (ниже)
+    glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
     
     //Шейдеры
     Shader ourShader("/Users/JulieClark/Documents/ВМК/graphics/mr_Meeseeks/mr_Meeseeks/graph/shader.vs", "/Users/JulieClark/Documents/ВМК/graphics/mr_Meeseeks/mr_Meeseeks/graph/shader.frag");
+    Shader stencilShader("/Users/JulieClark/Documents/ВМК/graphics/mr_Meeseeks/mr_Meeseeks/graph/shader.vs", "/Users/JulieClark/Documents/ВМК/graphics/mr_Meeseeks/mr_Meeseeks/graph/stencil_shader.frag");
     //Куб
     float vertices[] = {
         // Позиции           // Текстурные // Нормали
@@ -149,13 +154,13 @@ int main()
     
     float floorVertices[] = {
         //Позиции             //Текстурные
-         5.0f, -0.5f,  5.0f,  2.0f, 0.0f,
-        -5.0f, -0.5f,  5.0f,  0.0f, 0.0f,
-        -5.0f, -0.5f, -5.0f,  0.0f, 2.0f,
+         5.0f, -0.5001f,  5.0f,  2.0f, 0.0f,
+        -5.0f, -0.5001f,  5.0f,  0.0f, 0.0f,
+        -5.0f, -0.5001f, -5.0f,  0.0f, 2.0f,
 
-         5.0f, -0.5f,  5.0f,  2.0f, 0.0f,
-        -5.0f, -0.5f, -5.0f,  0.0f, 2.0f,
-         5.0f, -0.5f, -5.0f,  2.0f, 2.0f
+         5.0f, -0.5001f,  5.0f,  2.0f, 0.0f,
+        -5.0f, -0.5001f, -5.0f,  0.0f, 2.0f,
+         5.0f, -0.5001f, -5.0f,  2.0f, 2.0f
     };
     
     //VBO, VAO, EBO
@@ -223,7 +228,7 @@ int main()
     unsigned texwidth, texheight;
 
     //Декодирование
-    unsigned error = lodepng::decode(image, texwidth, texheight, "/Users/JulieClark/Documents/ВМК/graphics/mr_Meeseeks/mr_Meeseeks/graph/container2.png");
+    unsigned error = lodepng::decode(image, texwidth, texheight, "/Users/JulieClark/Documents/ВМК/graphics/mr_Meeseeks/mr_Meeseeks/graph/marble.png");
 
     //Ошибки
     if(error) std::cout << "DECODER::ERROR " << error << ": " << lodepng_error_text(error) << std::endl;
@@ -312,7 +317,7 @@ int main()
         
         //Фоновый цвет
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
         
         
         //Шейдер
@@ -342,11 +347,24 @@ int main()
         ourShader.setMat4("view", view);
         ourShader.setMat4("projection", projection);
         
+        //Отрисовка
+        //Пол
+        glBindVertexArray(floorVAO);
+        //Текстура
+        glBindTexture(GL_TEXTURE_2D, texture2);
+        //Трафарет
+        glStencilMask(0x00); //Выключена запись в буфер
+        //Пол 1
+        ourShader.setMat4("model", glm::mat4(1.0f));
+        glDrawArrays(GL_TRIANGLES, 0, 6);
+        
         //Объекты
         glBindVertexArray(objectVAO);
         //Текстура
         glBindTexture(GL_TEXTURE_2D, texture1);
-        
+        //Трафарет
+        glStencilFunc(GL_ALWAYS, 1, 0xFF); //Для всего нарисованного
+        glStencilMask(0xFF); //Включена запись в буфер
         //Куб 1
         glm::mat4 model = glm::mat4(1.0f);
         model = glm::translate(model, glm::vec3(-1.0f, 0.0f, -1.0f));
@@ -358,16 +376,33 @@ int main()
         ourShader.setMat4("model", model);
         glDrawArrays(GL_TRIANGLES, 0, 36);
         
+        //Обводка
+        glStencilFunc(GL_NOTEQUAL, 1, 0xFF);
+        glStencilMask(0x00); //Выключена запись в буфер
+        glDisable(GL_DEPTH_TEST);
         
-        //Пол
-        glBindVertexArray(floorVAO);
-        //Текстура
-        glBindTexture(GL_TEXTURE_2D, texture2);
-        //Пол 1
-        ourShader.setMat4("model", glm::mat4(1.0f));
-        glDrawArrays(GL_TRIANGLES, 0, 6);
-        glBindVertexArray(0);
+        stencilShader.Use();
         
+        glBindVertexArray(objectVAO);
+        stencilShader.setMat4("view", view);
+        stencilShader.setMat4("projection", projection);
+        glBindTexture(GL_TEXTURE_2D, texture1);
+        float scale = 1.1;
+        //Куб 1
+        model = glm::mat4(1.0f);
+        model = glm::translate(model, glm::vec3(-1.0f, 0.0f, -1.0f));
+        model = glm::scale(model, glm::vec3(scale));
+        stencilShader.setMat4("model", model);
+        glDrawArrays(GL_TRIANGLES, 0, 36);
+        //Куб2
+        model = glm::mat4(1.0f);
+        model = glm::translate(model, glm::vec3(2.0f, 0.0f, 0.0f));
+        model = glm::scale(model, glm::vec3(scale));
+        stencilShader.setMat4("model", model);
+        glDrawArrays(GL_TRIANGLES, 0, 36);
+        
+        glStencilMask(0xFF); //Включена запись в буфер
+        glEnable(GL_DEPTH_TEST);
         
         //Смена буферов
         glfwSwapBuffers(window);
