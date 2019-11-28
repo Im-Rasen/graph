@@ -21,7 +21,7 @@ GLfloat deltaTime = 0.0f;
 //Время вывода последнего кадра
 GLfloat lastFrame = 0.0f;
 //Степень смешивания тестур
-float mixRate = 0.0f;
+//float mixRate = 0.0f;
 //Буфер нажатий
 bool keys[1024];
 //Камера
@@ -101,8 +101,6 @@ int main()
     
     //Шейдеры
     Shader ourShader("/Users/JulieClark/Documents/ВМК/graphics/mr_Meeseeks/mr_Meeseeks/graph/shader.vs", "/Users/JulieClark/Documents/ВМК/graphics/mr_Meeseeks/mr_Meeseeks/graph/shader.frag");
-    Shader lampShader("/Users/JulieClark/Documents/ВМК/graphics/mr_Meeseeks/mr_Meeseeks/graph/light_shader.vs","/Users/JulieClark/Documents/ВМК/graphics/mr_Meeseeks/mr_Meeseeks/graph/light_shader.frag");
-
     //Куб
     float vertices[] = {
         // Позиции           // Текстурные // Нормали
@@ -149,25 +147,15 @@ int main()
         -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,  0.0f, 1.0f, 0.0f
     };
     
-    //Сдвиги кубиков
-    glm::vec3 cubePositions[] = {
-      glm::vec3( 0.0f,  0.0f,  0.0f),
-      glm::vec3( 2.0f,  5.0f, -15.0f),
-      glm::vec3(-1.5f, -2.2f, -2.5f),
-      glm::vec3(-3.8f, -2.0f, -12.3f),
-      glm::vec3( 2.4f, -0.4f, -3.5f),
-      glm::vec3(-1.7f,  3.0f, -7.5f),
-      glm::vec3( 1.3f, -2.0f, -2.5f),
-      glm::vec3( 1.5f,  2.0f, -2.5f),
-      glm::vec3( 1.5f,  0.2f, -1.5f),
-      glm::vec3(-1.3f,  1.0f, -1.5f)
-    };
-    
-    glm::vec3 pointLightPositions[] = {
-        glm::vec3( 0.7f,  0.2f,  2.0f),
-        glm::vec3( 2.3f, -3.3f, -4.0f),
-        glm::vec3(-4.0f,  2.0f, -12.0f),
-        glm::vec3( 0.0f,  0.0f, -3.0f)
+    float floorVertices[] = {
+        //Позиции             //Текстурные
+         5.0f, -0.5f,  5.0f,  2.0f, 0.0f,
+        -5.0f, -0.5f,  5.0f,  0.0f, 0.0f,
+        -5.0f, -0.5f, -5.0f,  0.0f, 2.0f,
+
+         5.0f, -0.5f,  5.0f,  2.0f, 0.0f,
+        -5.0f, -0.5f, -5.0f,  0.0f, 2.0f,
+         5.0f, -0.5f, -5.0f,  2.0f, 2.0f
     };
     
     //VBO, VAO, EBO
@@ -176,22 +164,12 @@ int main()
     glGenVertexArrays(1, &objectVAO);
     
     //Создаем Vertex Buffer Objects
-    GLuint VBO;
-    glGenBuffers(1, &VBO);
+    GLuint objectVBO;
+    glGenBuffers(1, &objectVBO);
     //Привязка буфера к VBO
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBindBuffer(GL_ARRAY_BUFFER, objectVBO);
     //Копируем вершинные данные в буфер + GL_STATIC_DRAW/GL_DYNAMIC_DRAW/GL_STREAM_DRAW
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-    
-    /*
-    //Создаем Element Buffer Object
-    GLuint EBO;
-    glGenBuffers(1, &EBO);
-    //Привязка буфера к EBO
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-    //Копируем вершинные данные в буфер
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
-     */
     
     //Привязка VAO
     glBindVertexArray(objectVAO);
@@ -201,28 +179,26 @@ int main()
     // Атрибут с координатами
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (GLvoid*)0);
     glEnableVertexAttribArray(0);
-    /*
-    // Атрибут с цветом
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (GLvoid*)(3* sizeof(GLfloat)));
-    glEnableVertexAttribArray(1);
-     */
     // Атрибут с текстурой
-    glVertexAttribPointer(2, 2, GL_FLOAT,GL_FALSE, 8 * sizeof(GLfloat), (GLvoid*)(3 * sizeof(GLfloat)));
-    glEnableVertexAttribArray(2);
-    //Атрибут с нормалью
-    glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (GLvoid*)(5 * sizeof(GLfloat)));
-    glEnableVertexAttribArray(3);
+    glVertexAttribPointer(1, 2, GL_FLOAT,GL_FALSE, 8 * sizeof(GLfloat), (GLvoid*)(3 * sizeof(GLfloat)));
+    glEnableVertexAttribArray(1);
     
-    //Создание VAO для лампы
-    GLuint lightVAO;
-    glGenVertexArrays(1, &lightVAO);
-    //Привязка VAO
-    glBindVertexArray(lightVAO);
-    //Привязка буфера к VBO (VBO - тот же)
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    //Пол
+    GLuint floorVAO;
+    glGenVertexArrays(1, &floorVAO);
+    
+    GLuint floorVBO;
+    glGenBuffers(1, &floorVBO);
+    glBindBuffer(GL_ARRAY_BUFFER, floorVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(floorVertices), floorVertices, GL_STATIC_DRAW);
+    glBindVertexArray(floorVAO);
+    //Устанавливаем указатели на вершинные атрибуты //location = 0, vec3,,normalize,step_between_data_packs,смещение_начала_данных
     // Атрибут с координатами
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (GLvoid*)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (GLvoid*)0);
     glEnableVertexAttribArray(0);
+    // Атрибут с текстурой
+    glVertexAttribPointer(1, 2, GL_FLOAT,GL_FALSE, 5 * sizeof(GLfloat), (GLvoid*)(3 * sizeof(GLfloat)));
+    glEnableVertexAttribArray(1);
     
     
     //___Текстуры___
@@ -236,14 +212,6 @@ int main()
     //Параметры семплинга
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_MIRRORED_REPEAT); // 3D
-    /* Для GL_CLAMP_TO_BORDER параметра
-    float borderColor[] = { 1.0f, 1.0f, 0.0f, 1.0f };
-    glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
-    */
-
-    // select modulate to mix texture with color for shading
-    //glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
 
     //Параметры МипМапов
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR); //GL_LINEAR_MIPMAP_LINEAR / GL_LINEAR / GL_NEAREST
@@ -288,25 +256,17 @@ int main()
     glBindTexture(GL_TEXTURE_2D, texture2);
     
     //Параметры семплинга
-       glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
-       glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
-       //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_MIRRORED_REPEAT); // 3D
-       /* Для GL_CLAMP_TO_BORDER параметра
-        float borderColor[] = { 1.0f, 1.0f, 0.0f, 1.0f };
-        glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
-        */
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
        
-       // select modulate to mix texture with color for shading
-       //glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
-       
-       //Параметры МипМапов
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);//GL_LINEAR_MIPMAP_LINEAR / GL_LINEAR / GL_NEAREST
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    //Параметры МипМапов
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);//GL_LINEAR_MIPMAP_LINEAR / GL_LINEAR / GL_NEAREST
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     
     
     //Загрузка lodepng
     //Декодирование
-    error = lodepng::decode(image, texwidth, texheight, "/Users/JulieClark/Documents/ВМК/graphics/mr_Meeseeks/mr_Meeseeks/graph/container2_specular.png");
+    error = lodepng::decode(image, texwidth, texheight, "/Users/JulieClark/Documents/ВМК/graphics/mr_Meeseeks/mr_Meeseeks/graph/metal.png");
 
     //Ошибки
     if(error) std::cout << "DECODER::ERROR " << error << ": " << lodepng_error_text(error) << std::endl;
@@ -329,6 +289,7 @@ int main()
     std::vector<unsigned char>().swap(image);
     glBindTexture(GL_TEXTURE_2D, 0);
     //---Texture::END---
+    
     
     //Игровой цикл
     while(!glfwWindowShouldClose(window))
@@ -357,214 +318,55 @@ int main()
         //Шейдер
         
         ourShader.Use();
-        //ourShader.setVec3("material.ambient",  1.0f, 0.5f, 0.31f);
-        ourShader.setInt("material.ambient", 0);
-        //ourShader.setVec3("material.diffuse",  1.0f, 0.5f, 0.31f);
-        ourShader.setInt("material.diffuse", 0);
-        //ourShader.setVec3("material.specular", 0.5f, 0.5f, 0.5f);
-        ourShader.setInt("material.specular", 1);
-        ourShader.setFloat("material.shininess", 32.0f);
-        
-        //Направленный свет
-        ourShader.setVec3("dirLight.direction", -0.2f, -1.0f, -0.3f);
-        ourShader.setVec3("dirLight.ambient", 0.1f, 0.1f, 0.1f);
-        ourShader.setVec3("dirLight.diffuse", 0.3f, 0.3f, 0.3f);
-        ourShader.setVec3("dirLight.specular", 1.0f, 1.0f, 1.0f);
-        
-        //Точечный свет
-        ourShader.setVec3("light[0].position", pointLightPositions[0]);
-        ourShader.setVec3("light[0].specular", 1.0f, 1.0f, 1.0f);
-        ourShader.setVec3("light[0].ambient", 0.2f, 0.2f, 0.2f);
-        ourShader.setVec3("light[0].diffuse", 0.5f, 0.5f, 0.5f);
-        ourShader.setFloat("light[0].constant", 1.0f);
-        ourShader.setFloat("light[0].linear", 0.09f);
-        ourShader.setFloat("light[0].quadratic", 0.032f);
-        
-        ourShader.setVec3("light[1].position", pointLightPositions[1]);
-        ourShader.setVec3("light[1].specular", 1.0f, 1.0f, 1.0f);
-        ourShader.setVec3("light[1].ambient", 0.2f, 0.2f, 0.2f);
-        ourShader.setVec3("light[1].diffuse", 0.5f, 0.5f, 0.5f);
-        ourShader.setFloat("light[1].constant", 1.0f);
-        ourShader.setFloat("light[1].linear", 0.09f);
-        ourShader.setFloat("light[1].quadratic", 0.032f);
-        
-        ourShader.setVec3("light[2].position", pointLightPositions[2]);
-        ourShader.setVec3("light[2].specular", 1.0f, 1.0f, 1.0f);
-        ourShader.setVec3("light[2].ambient", 0.2f, 0.2f, 0.2f);
-        ourShader.setVec3("light[2].diffuse", 0.5f, 0.5f, 0.5f);
-        ourShader.setFloat("light[2].constant", 1.0f);
-        ourShader.setFloat("light[2].linear", 0.09f);
-        ourShader.setFloat("light[2].quadratic", 0.032f);
-        
-        ourShader.setVec3("light[3].position", pointLightPositions[3]);
-        ourShader.setVec3("light[3].specular", 1.0f, 1.0f, 1.0f);
-        ourShader.setVec3("light[3].ambient", 0.2f, 0.2f, 0.2f);
-        ourShader.setVec3("light[3].diffuse", 0.5f, 0.5f, 0.5f);
-        ourShader.setFloat("light[3].constant", 1.0f);
-        ourShader.setFloat("light[3].linear", 0.09f);
-        ourShader.setFloat("light[3].quadratic", 0.032f);
-        
-        //Фонарик
-        ourShader.setVec3("projLight.position", cameraPosition);
-        ourShader.setVec3("projLight.direction", cameraFront);
-        ourShader.setFloat("projLight.cutOff", glm::cos(glm::radians(12.5f)));
-        ourShader.setFloat("projLight.outerCutOff", glm::cos(glm::radians(17.5f)));
-        ourShader.setVec3("projLight.ambient", 0.1f, 0.1f, 0.1f);
-        ourShader.setVec3("projLight.diffuse", 0.5f, 0.5f, 0.5f);
-        ourShader.setVec3("projLight.specular", 1.0f, 1.0f, 1.0f);
-        ourShader.setFloat("projLight.constant", 1.0f);
-        ourShader.setFloat("projLight.linear", 0.09f);
-        ourShader.setFloat("projLight.quadratic", 0.032f);
-               
-        
-        
-        /*
-        glm::vec3 lightColor;
-        lightColor.x = sin(glfwGetTime() * 2.0f);
-        lightColor.y = sin(glfwGetTime() * 0.7f);
-        lightColor.z = sin(glfwGetTime() * 1.3f);
-        glm::vec3 diffuseColor = lightColor   * glm::vec3(0.5f); // decrease the influence
-        glm::vec3 ambientColor = diffuseColor * glm::vec3(0.2f); // low influence
-        ourShader.setVec3("light.ambient", ambientColor);
-        ourShader.setVec3("light.diffuse", diffuseColor);
-         */
-        
-        
-        
-        
-        //ourShader.setVec3("lightPosition", lightPosition);
-        glm::vec3 viewPosition = glm::vec3(cameraPosition); //???
-        ourShader.setVec3("viewPosition", viewPosition);
-        
-        //ourShader.setFloat("shiftX", 0.5);
-        //ourShader.setFloat("mixRate", mixRate);
-        
-        //Обновление uniform
-        
-        //Цвет
-        /*
-        GLfloat timeValue = glfwGetTime();
-        GLfloat greenValue = (sin(timeValue) / 2) + 0.5; //0.0 .. 1.0
-        ourShader.setVec4("ourColor", 0.0f, greenValue, 0.0f, 1.0f);
-         */
-        
-        //glm::vec3 lightColor = glm::vec3(1.0f, 1.0f, 1.0f);
-        //glm::vec3 objectColor = glm::vec3(1.0f, 0.5f, 0.3f);
-        //ourShader.setVec3("lightColor", lightColor);
-        //ourShader.setVec3("objectColor", objectColor);
-        
-        
-        //Локальные -> Мировые координаты
-        glm::mat4 model = glm::mat4(1.0f);
-        //model = glm::rotate(model, (GLfloat)glfwGetTime() * glm::radians(50.0f), glm::vec3(0.5f, 1.0f, 0.0f));
-        //model = glm::rotate(model, -glm::radians(55.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-        ourShader.setMat4("model", model);
-        
-        //Движение сцены относительно Камеры
+
+        //view
         glm::mat4 view = glm::mat4(1.0f);
-        //view = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f));
-        //view = glm::rotate(view, (GLfloat)glfwGetTime() * 0.5f, glm::vec3(0.5, 0.3, 0.0));
         //Камера (Грама-Шмидта)
         GLfloat radius = 2.0f;
-        //GLfloat camX = sin(glfwGetTime()) * radius;
-        //GLfloat camY = 5.0f;
-        //GLfloat camZ = cos(glfwGetTime()) * radius;
-        //cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
-        //cameraPosition = glm::vec3(camX, camY, camZ);
-        //glm::vec3 cameraTarget = glm::vec3(0.0f, 0.0f, 0.0f);
         glm::vec3 cameraDirection = glm::normalize(cameraPosition - cameraTarget); // Камера -> Z+
         glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f);
         glm::vec3 cameraRight = glm::normalize(glm::cross(up, cameraDirection)); // Камера -> X+
         cameraUp = glm::cross(cameraDirection, cameraRight); // Камера -> Y+
         //Позиция камеры, Цель камеры, Орт вверх
-        //view = glm::lookAt(cameraPosition, cameraTarget, up);
         view = glm::lookAt(cameraPosition, cameraPosition + cameraFront, up);
         // [R_x R_y R_z 0]   [1 0 0 -P_x]
         // [U_x U_y U_z 0] * [0 1 0 -P_y]
         // [D_x D_y D_z 0]   [0 0 1 -P_z]
         // [0   0   0   1]   [0 0 0   1 ]
-        ourShader.setMat4("view", view);
-
         
         //Проекция
         glm::mat4 projection = glm::mat4(1.0f);
         //fov,,distance_min,distance_max
         projection = glm::perspective(glm::radians(fov), float(screenWidth) / float(screenHeight), 0.1f, 100.0f);
+        
+        ourShader.setMat4("view", view);
         ourShader.setMat4("projection", projection);
         
-        //Трансформация
-        /*
-        glm::mat4 trans(1.0f);
-        trans = glm::translate(trans, glm::vec3(0.5f, -0.5f, 0.0f));
-        trans = glm::rotate(trans, (GLfloat)glfwGetTime() * glm::radians(50.0f), glm::vec3(0.0, 0.0, 1.0));
-        trans = glm::scale(trans, glm::vec3(0.5, 0.5, 0.5));
-        //ourShader.setMat4("transform", trans);
-         */
-        
-        //glUseProgram(ourShader.Program);
-        
-        
-
+        //Объекты
         glBindVertexArray(objectVAO);
-        
-        
-        //Текстуры
-        glActiveTexture(GL_TEXTURE0);
+        //Текстура
         glBindTexture(GL_TEXTURE_2D, texture1);
-        //glUniform1i(glGetUniformLocation(ourShader.Program, "diffuseTexture"), 0);
         
-        glActiveTexture(GL_TEXTURE1);
+        //Куб 1
+        glm::mat4 model = glm::mat4(1.0f);
+        model = glm::translate(model, glm::vec3(-1.0f, 0.0f, -1.0f));
+        ourShader.setMat4("model", model);
+        glDrawArrays(GL_TRIANGLES, 0, 36);
+        //Куб2
+        model = glm::mat4(1.0f);
+        model = glm::translate(model, glm::vec3(2.0f, 0.0f, 0.0f));
+        ourShader.setMat4("model", model);
+        glDrawArrays(GL_TRIANGLES, 0, 36);
+        
+        
+        //Пол
+        glBindVertexArray(floorVAO);
+        //Текстура
         glBindTexture(GL_TEXTURE_2D, texture2);
-        //glUniform1i(glGetUniformLocation(ourShader.Program, "specularTexture"), 1);
-         
-
-        
-        //glActiveTexture(GL_TEXTURE0); //Активируем текстурный блок
-        //glBindTexture(GL_TEXTURE_2D, texture1);
-        
-        //Отрисовка
-        //glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-        //glDrawArrays(GL_TRIANGLES, 0, 36);
-        
-        for(GLuint i = 0; i < 10; i++)
-        {
-            glm::mat4 model(1.0f);
-            model = glm::translate(model, cubePositions[i]);
-            GLfloat angle = (GLfloat)glfwGetTime() * glm::radians(15.0f + i*10.0f);
-            model = glm::rotate(model, angle, glm::vec3(1.0f, 0.3f, 0.5f));
-            ourShader.setMat4("model", model);
-
-          glDrawArrays(GL_TRIANGLES, 0, 36);
-        }
-        
-        //Лампа
-        lampShader.Use();
-        /*
-        GLfloat shiftX = 1.5f * sin(glfwGetTime()/3); // * radius;
-        GLfloat shiftY = lightPosition.y;
-        GLfloat shiftZ = 1.5f * cos(glfwGetTime()/3); // * radius;
-        glm::vec3 shift = glm::vec3(shiftX, shiftY, shiftZ);
-        lightPosition = shift;
-         
-        model = glm::rotate(model, (GLfloat)glfwGetTime() * glm::radians(50.0f), glm::vec3(0.5f, 1.0f, 0.0f));
-         */
-        
-        
-        //lampShader.setFloat("shiftX", shiftX);
-        //lampShader.setFloat("shiftZ", shiftZ);
-        
-        lampShader.setMat4("view", view);
-        lampShader.setMat4("projection", projection);
-        
-        glBindVertexArray(lightVAO);
-        for (int i = 0; i < NR_POINT_LIGHTS; i++)
-        {
-            model = glm::mat4(1.0f);
-            model = glm::translate(model, pointLightPositions[i]);
-            model = glm::scale(model, glm::vec3(0.2f));
-            lampShader.setMat4("model", model);
-            glDrawArrays(GL_TRIANGLES, 0, 36);
-        }
+        //Пол 1
+        ourShader.setMat4("model", glm::mat4(1.0f));
+        glDrawArrays(GL_TRIANGLES, 0, 6);
+        glBindVertexArray(0);
         
         
         //Смена буферов
@@ -590,21 +392,6 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
     // и приложение после этого закроется
     if(key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
         glfwSetWindowShouldClose(window, GL_TRUE);
-    
-    // Изменение степени проявления текстур кнопками-стрелками (вверх и вниз)
-    if(key == GLFW_KEY_UP && action == GLFW_PRESS)
-    {
-        mixRate += 0.1f;
-    if(mixRate >= 1.0f)
-        mixRate = 1.0f;
-    }
-    
-    if(key == GLFW_KEY_DOWN && action == GLFW_PRESS)
-    {
-        mixRate -= 0.1f;
-    if (mixRate <= 0.0f)
-        mixRate = 0.0f;
-    }
 }
 
 void doMovement()
