@@ -15,6 +15,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include <map>
 
 //Время, прошедшее между последним и текущим кадром
 GLfloat deltaTime = 0.0f;
@@ -103,9 +104,9 @@ int main()
     //Если оба теста пройдены, ставим значение из glStencilFunc (ниже)
     //glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
     //Режим смешивания
-    //glEnable(GL_BLEND);
+    glEnable(GL_BLEND);
     //Прозрачность источника - для источника, 1-прозрачность источника - для приемника
-    //glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     //glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ZERO);
     //glBlendEquation(GL_FUNC_SUBTRACT);
     
@@ -350,7 +351,7 @@ int main()
     
     //Загрузка lodepng
     //Декодирование
-    error = lodepng::decode(image, texwidth, texheight, "/Users/JulieClark/Documents/ВМК/graphics/mr_Meeseeks/mr_Meeseeks/graph/grassivo.png");
+    error = lodepng::decode(image, texwidth, texheight, "/Users/JulieClark/Documents/ВМК/graphics/mr_Meeseeks/mr_Meeseeks/graph/window.png");
 
     //Ошибки
     if(error) std::cout << "DECODER::ERROR " << error << ": " << lodepng_error_text(error) << std::endl;
@@ -375,13 +376,15 @@ int main()
     
     //---Texture::END---
     
-    //Позиции травки
-       std::vector<glm::vec3> vegetation;
-       vegetation.push_back(glm::vec3(-1.5f,  0.0f, -0.48f));
-       vegetation.push_back(glm::vec3( 1.5f,  0.0f,  0.51f));
-       vegetation.push_back(glm::vec3( 0.0f,  0.0f,  0.7f));
-       vegetation.push_back(glm::vec3(-0.3f,  0.0f, -2.3f));
-       vegetation.push_back(glm::vec3( 0.5f,  0.0f, -0.6f));
+    //Позиции окошек
+    std::vector<glm::vec3> windows
+    {
+        glm::vec3(-1.5f,  0.0f, -0.48f),
+        glm::vec3( 1.5f,  0.0f,  0.51f),
+        glm::vec3( 0.0f,  0.0f,  0.7f),
+        glm::vec3(-0.3f,  0.0f, -2.3f),
+        glm::vec3( 0.5f,  0.0f, -0.6f)
+    };
     
     //Игровой цикл
     while(!glfwWindowShouldClose(window))
@@ -402,10 +405,17 @@ int main()
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
         
+        //Сортировка по расстоянию до наблюдателя прозрачных объектов
+        std::map<float, glm::vec3> sorted;
+        for (unsigned int i = 0; i < windows.size(); i++)
+        {
+            float distance = glm::length(cameraPosition - windows[i]);
+            sorted[distance] = windows[i];
+        }
+        
         //Фоновый цвет
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT) ; //| GL_STENCIL_BUFFER_BIT)
-        
         
         //Шейдер
         
@@ -461,14 +471,13 @@ int main()
         //Травка
         glBindVertexArray(vegetationVAO);
         glBindTexture(GL_TEXTURE_2D, texture3);
-        for(unsigned int i = 0; i < vegetation.size(); i++)
+        for(std::map<float,glm::vec3>::reverse_iterator it = sorted.rbegin(); it != sorted.rend(); ++it)
         {
             model = glm::mat4(1.0f);
-            model = glm::translate(model, vegetation[i]);
+            model = glm::translate(model, it->second);
             ourShader.setMat4("model", model);
             glDrawArrays(GL_TRIANGLES, 0, 6);
         }
-
         
         //Смена буферов
         glfwSwapBuffers(window);
