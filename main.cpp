@@ -50,6 +50,8 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void doMovement();
 
+unsigned int loadCubemap(std::vector<std::string> faces);
+
 
 int main()
 {
@@ -113,6 +115,8 @@ int main()
     //Шейдеры
     Shader ourShader("/Users/JulieClark/Documents/ВМК/graphics/mr_Meeseeks/mr_Meeseeks/graph/shader.vs", "/Users/JulieClark/Documents/ВМК/graphics/mr_Meeseeks/mr_Meeseeks/graph/shader.frag");
     Shader screenShader("/Users/JulieClark/Documents/ВМК/graphics/mr_Meeseeks/mr_Meeseeks/graph/screen_shader.vs", "/Users/JulieClark/Documents/ВМК/graphics/mr_Meeseeks/mr_Meeseeks/graph/screen_shader.frag");
+    Shader skyShader("/Users/JulieClark/Documents/ВМК/graphics/mr_Meeseeks/mr_Meeseeks/graph/sky_shader.vs", "/Users/JulieClark/Documents/ВМК/graphics/mr_Meeseeks/mr_Meeseeks/graph/sky_shader.frag");
+    
     //Куб
     float vertices[] = {
         // Позиции           // Текстурные // Нормали
@@ -190,6 +194,51 @@ int main()
         -1.0f,  1.0f,  0.0f, 1.0f,
          1.0f, -1.0f,  1.0f, 0.0f,
          1.0f,  1.0f,  1.0f, 1.0f
+    };
+    
+    float skyVertices[] = {
+        // positions
+        -1.0f,  1.0f, -1.0f,
+        -1.0f, -1.0f, -1.0f,
+         1.0f, -1.0f, -1.0f,
+         1.0f, -1.0f, -1.0f,
+         1.0f,  1.0f, -1.0f,
+        -1.0f,  1.0f, -1.0f,
+
+        -1.0f, -1.0f,  1.0f,
+        -1.0f, -1.0f, -1.0f,
+        -1.0f,  1.0f, -1.0f,
+        -1.0f,  1.0f, -1.0f,
+        -1.0f,  1.0f,  1.0f,
+        -1.0f, -1.0f,  1.0f,
+
+         1.0f, -1.0f, -1.0f,
+         1.0f, -1.0f,  1.0f,
+         1.0f,  1.0f,  1.0f,
+         1.0f,  1.0f,  1.0f,
+         1.0f,  1.0f, -1.0f,
+         1.0f, -1.0f, -1.0f,
+
+        -1.0f, -1.0f,  1.0f,
+        -1.0f,  1.0f,  1.0f,
+         1.0f,  1.0f,  1.0f,
+         1.0f,  1.0f,  1.0f,
+         1.0f, -1.0f,  1.0f,
+        -1.0f, -1.0f,  1.0f,
+
+        -1.0f,  1.0f, -1.0f,
+         1.0f,  1.0f, -1.0f,
+         1.0f,  1.0f,  1.0f,
+         1.0f,  1.0f,  1.0f,
+        -1.0f,  1.0f,  1.0f,
+        -1.0f,  1.0f, -1.0f,
+
+        -1.0f, -1.0f, -1.0f,
+        -1.0f, -1.0f,  1.0f,
+         1.0f, -1.0f, -1.0f,
+         1.0f, -1.0f, -1.0f,
+        -1.0f, -1.0f,  1.0f,
+         1.0f, -1.0f,  1.0f
     };
     
     //VBO, VAO, EBO
@@ -271,6 +320,23 @@ int main()
     glBindVertexArray(0);
     
     
+    //Скайбокс
+    GLuint skyVAO;
+    glGenVertexArrays(1, &skyVAO);
+    
+    GLuint skyVBO;
+    glGenBuffers(1, &skyVBO);
+    glBindBuffer(GL_ARRAY_BUFFER, skyVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(skyVertices), skyVertices, GL_STATIC_DRAW);
+    glBindVertexArray(skyVAO);
+    //Устанавливаем указатели на вершинные атрибуты //location = 0, vec3,,normalize,step_between_data_packs,смещение_начала_данных
+    // Атрибут с координатами
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid*)0);
+    glEnableVertexAttribArray(0);
+    
+    glBindVertexArray(0);
+    
+    
     //Кадровый буфер (текстурный, для цвета)
     unsigned int fbo;
     glGenFramebuffers(1, &fbo);
@@ -341,9 +407,9 @@ int main()
     //Генерация текстуры
     //Цель,уровень мипмапа,формат хранения,ширина,высота,прост,формат и тип данных исходника,данные изображения
     if (data){
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, texwidth, texheight, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
-    //Генерация мипмапов
-    glGenerateMipmap(GL_TEXTURE_2D);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, texwidth, texheight, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+        //Генерация мипмапов
+        glGenerateMipmap(GL_TEXTURE_2D);
     }
     else
     {
@@ -384,9 +450,9 @@ int main()
     //Генерация текстуры
     //Цель,уровень мипмапа,формат хранения,ширина,высота,прост,формат и тип данных исходника,данные изображения
     if (data){
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, texwidth, texheight, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
-    //Генерация мипмапов
-    glGenerateMipmap(GL_TEXTURE_2D);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, texwidth, texheight, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+        //Генерация мипмапов
+        glGenerateMipmap(GL_TEXTURE_2D);
     }
     else
     {
@@ -427,9 +493,9 @@ int main()
     //Генерация текстуры
     //Цель,уровень мипмапа,формат хранения,ширина,высота,прост,формат и тип данных исходника,данные изображения
     if (data){
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, texwidth, texheight, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
-    //Генерация мипмапов
-    glGenerateMipmap(GL_TEXTURE_2D);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, texwidth, texheight, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+        //Генерация мипмапов
+        glGenerateMipmap(GL_TEXTURE_2D);
     }
     else
     {
@@ -439,6 +505,21 @@ int main()
     //Освобождение памяти и отвзяка от изображения
     std::vector<unsigned char>().swap(image);
     glBindTexture(GL_TEXTURE_2D, 0);
+    
+    //----------------------------------------------------------
+    
+    //Кубическая карта
+    std::vector<std::string> faces
+    {
+        "/Users/JulieClark/Documents/ВМК/graphics/mr_Meeseeks/mr_Meeseeks/graph/right.png",
+        "/Users/JulieClark/Documents/ВМК/graphics/mr_Meeseeks/mr_Meeseeks/graph/left.png",
+        "/Users/JulieClark/Documents/ВМК/graphics/mr_Meeseeks/mr_Meeseeks/graph/top.png",
+        "/Users/JulieClark/Documents/ВМК/graphics/mr_Meeseeks/mr_Meeseeks/graph/bottom.png",
+        "/Users/JulieClark/Documents/ВМК/graphics/mr_Meeseeks/mr_Meeseeks/graph/front.png",
+        "/Users/JulieClark/Documents/ВМК/graphics/mr_Meeseeks/mr_Meeseeks/graph/back.png"
+    };
+    
+    unsigned int cubemapTexture = loadCubemap(faces);
     
     //---Texture::END---
     
@@ -471,11 +552,40 @@ int main()
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
         
+        
         // первый проход
         glBindFramebuffer(GL_FRAMEBUFFER, fbo);
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // буфер трафарета не используется
         glEnable(GL_DEPTH_TEST);
+        
+        //Нулевой проход (скайбокс)
+        glDepthMask(GL_FALSE);
+        skyShader.Use();
+        //Видовая
+        glm::mat4 view = glm::mat4(1.0f);
+        //Камера (Грама-Шмидта)
+        GLfloat radius = 2.0f;
+        glm::vec3 cameraDirection = glm::normalize(cameraPosition - cameraTarget); // Камера -> Z+
+        glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f);
+        glm::vec3 cameraRight = glm::normalize(glm::cross(up, cameraDirection)); // Камера -> X+
+        cameraUp = glm::cross(cameraDirection, cameraRight); // Камера -> Y+
+        //Позиция камеры, Цель камеры, Орт вверх
+        view = glm::lookAt(cameraPosition, cameraPosition + cameraFront, up);
+        //Убрать составляющую передвижения
+        view = glm::mat4(glm::mat3(view));
+        //Проекция
+        glm::mat4 projection = glm::mat4(1.0f);
+        //fov,,distance_min,distance_max
+        projection = glm::perspective(glm::radians(fov), float(screenWidth) / float(screenHeight), 0.1f, 100.0f);
+
+        skyShader.setMat4("view", view);
+        skyShader.setMat4("projection", projection);
+        
+        glBindVertexArray(skyVAO);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
+        glDrawArrays(GL_TRIANGLES, 0, 36);
+        glDepthMask(GL_TRUE);
         
         //Сортировка по расстоянию до наблюдателя прозрачных объектов
         std::map<float, glm::vec3> sorted;
@@ -490,12 +600,12 @@ int main()
         ourShader.Use();
 
         //view
-        glm::mat4 view = glm::mat4(1.0f);
+        view = glm::mat4(1.0f);
         //Камера (Грама-Шмидта)
-        GLfloat radius = 2.0f;
-        glm::vec3 cameraDirection = glm::normalize(cameraPosition - cameraTarget); // Камера -> Z+
-        glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f);
-        glm::vec3 cameraRight = glm::normalize(glm::cross(up, cameraDirection)); // Камера -> X+
+        radius = 2.0f;
+        cameraDirection = glm::normalize(cameraPosition - cameraTarget); // Камера -> Z+
+        up = glm::vec3(0.0f, 1.0f, 0.0f);
+        cameraRight = glm::normalize(glm::cross(up, cameraDirection)); // Камера -> X+
         cameraUp = glm::cross(cameraDirection, cameraRight); // Камера -> Y+
         //Позиция камеры, Цель камеры, Орт вверх
         view = glm::lookAt(cameraPosition, cameraPosition + cameraFront, up);
@@ -505,7 +615,7 @@ int main()
         // [0   0   0   1]   [0 0 0   1 ]
         
         //Проекция
-        glm::mat4 projection = glm::mat4(1.0f);
+        projection = glm::mat4(1.0f);
         //fov,,distance_min,distance_max
         projection = glm::perspective(glm::radians(fov), float(screenWidth) / float(screenHeight), 0.1f, 100.0f);
         
@@ -640,4 +750,49 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
       fov = 1.0f;
   if(fov >= 45.0f)
       fov = 45.0f;
+}
+
+unsigned int loadCubemap(std::vector<std::string> faces)
+{
+    unsigned int textureID;
+    glGenTextures(1, &textureID);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, textureID);
+
+    //Параметры семплинга
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+    
+    for(GLuint i = 0; i < faces.size(); i++)
+    {
+        //Загрузка lodepng
+        std::vector<unsigned char> image; //Пиксели будут тут
+        unsigned texwidth, texheight;
+        //Декодирование
+        unsigned error = lodepng::decode(image, texwidth, texheight, faces[i]);
+
+        //Ошибки
+        if(error) std::cout << "DECODER::ERROR " << error << ": " << lodepng_error_text(error) << std::endl;
+        
+        unsigned char* data = &image[0]; //RGBARGBARGBA...
+        
+        if (data){
+            //Генерация текстуры
+            glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGBA, texwidth, texheight, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+            //Генерация мипмапов
+            glGenerateMipmap(GL_TEXTURE_2D);
+        }
+        else
+        {
+            std::cout << "ERROR IN TEXTURE LOADING" << std::endl;
+        }
+        
+        //Освобождение памяти и отвзяка от изображения
+           std::vector<unsigned char>().swap(image);
+           glBindTexture(GL_TEXTURE_2D, 0);
+    }
+
+    return textureID;
 }
