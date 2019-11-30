@@ -116,6 +116,7 @@ int main()
     Shader ourShader("/Users/JulieClark/Documents/ВМК/graphics/mr_Meeseeks/mr_Meeseeks/graph/shader.vs", "/Users/JulieClark/Documents/ВМК/graphics/mr_Meeseeks/mr_Meeseeks/graph/shader.frag");
     Shader screenShader("/Users/JulieClark/Documents/ВМК/graphics/mr_Meeseeks/mr_Meeseeks/graph/screen_shader.vs", "/Users/JulieClark/Documents/ВМК/graphics/mr_Meeseeks/mr_Meeseeks/graph/screen_shader.frag");
     Shader skyShader("/Users/JulieClark/Documents/ВМК/graphics/mr_Meeseeks/mr_Meeseeks/graph/sky_shader.vs", "/Users/JulieClark/Documents/ВМК/graphics/mr_Meeseeks/mr_Meeseeks/graph/sky_shader.frag");
+    Shader mirrorShader("/Users/JulieClark/Documents/ВМК/graphics/mr_Meeseeks/mr_Meeseeks/graph/mirror_shader.vs", "/Users/JulieClark/Documents/ВМК/graphics/mr_Meeseeks/mr_Meeseeks/graph/mirror_shader.frag");
     
     //Куб
     float vertices[] = {
@@ -265,6 +266,9 @@ int main()
     // Атрибут с текстурой
     glVertexAttribPointer(1, 2, GL_FLOAT,GL_FALSE, 8 * sizeof(GLfloat), (GLvoid*)(3 * sizeof(GLfloat)));
     glEnableVertexAttribArray(1);
+    // Атрибут с нормалями
+    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (GLvoid*)(5 * sizeof(GLfloat)));
+    glEnableVertexAttribArray(2);
     
     //Пол
     GLuint floorVAO;
@@ -553,11 +557,39 @@ int main()
         lastFrame = currentFrame;
         
         
-        // первый проход
+        // Первый проход
         glBindFramebuffer(GL_FRAMEBUFFER, fbo);
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // буфер трафарета не используется
         glEnable(GL_DEPTH_TEST);
+        
+        //Скайбокс
+        glDepthMask(GL_FALSE);
+        skyShader.Use();
+        //Видовая
+        glm::mat4 view = glm::mat4(1.0f);
+        //Камера (Грама-Шмидта)
+        GLfloat radius = 2.0f;
+        glm::vec3 cameraDirection = glm::normalize(cameraPosition - cameraTarget); // Камера -> Z+
+        glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f);
+        glm::vec3 cameraRight = glm::normalize(glm::cross(up, cameraDirection)); // Камера -> X+
+        cameraUp = glm::cross(cameraDirection, cameraRight); // Камера -> Y+
+        //Позиция камеры, Цель камеры, Орт вверх
+        view = glm::lookAt(cameraPosition, cameraPosition + cameraFront, up);
+        //Убрать составляющую передвижения
+        view = glm::mat4(glm::mat3(view));
+        //Проекция
+        glm::mat4 projection = glm::mat4(1.0f);
+        //fov,,distance_min,distance_max
+        projection = glm::perspective(glm::radians(fov), float(screenWidth) / float(screenHeight), 0.1f, 100.0f);
+
+        skyShader.setMat4("view", view);
+        skyShader.setMat4("projection", projection);
+        
+        glBindVertexArray(skyVAO);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
+        glDrawArrays(GL_TRIANGLES, 0, 36);
+        glDepthMask(GL_TRUE);
         
         
         //Сортировка по расстоянию до наблюдателя прозрачных объектов
@@ -570,15 +602,16 @@ int main()
 
         //Шейдер
         
-        ourShader.Use();
+        mirrorShader.Use();
+        mirrorShader.setVec3("cameraPosition", cameraPosition);
 
         //view
-        glm::mat4 view = glm::mat4(1.0f);
+        view = glm::mat4(1.0f);
         //Камера (Грама-Шмидта)
-        GLfloat radius = 2.0f;
-        glm::vec3 cameraDirection = glm::normalize(cameraPosition - cameraTarget); // Камера -> Z+
-        glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f);
-        glm::vec3 cameraRight = glm::normalize(glm::cross(up, cameraDirection)); // Камера -> X+
+        radius = 2.0f;
+        cameraDirection = glm::normalize(cameraPosition - cameraTarget); // Камера -> Z+
+        up = glm::vec3(0.0f, 1.0f, 0.0f);
+        cameraRight = glm::normalize(glm::cross(up, cameraDirection)); // Камера -> X+
         cameraUp = glm::cross(cameraDirection, cameraRight); // Камера -> Y+
         //Позиция камеры, Цель камеры, Орт вверх
         view = glm::lookAt(cameraPosition, cameraPosition + cameraFront, up);
@@ -588,36 +621,42 @@ int main()
         // [0   0   0   1]   [0 0 0   1 ]
         
         //Проекция
-        glm::mat4 projection = glm::mat4(1.0f);
+        projection = glm::mat4(1.0f);
         //fov,,distance_min,distance_max
         projection = glm::perspective(glm::radians(fov), float(screenWidth) / float(screenHeight), 0.1f, 100.0f);
         
+        mirrorShader.setMat4("view", view);
+        mirrorShader.setMat4("projection", projection);
+        
+        
+        //Объекты
+        glBindVertexArray(objectVAO);
+        //Текстура
+        //glBindTexture(GL_TEXTURE_2D, texture1);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
+        //Куб 1
+        glm::mat4 model = glm::mat4(1.0f);
+        model = glm::translate(model, glm::vec3(-1.0f, 0.0f, -1.0f));
+        mirrorShader.setMat4("model", model);
+        glDrawArrays(GL_TRIANGLES, 0, 36);
+        //Куб2
+        model = glm::mat4(1.0f);
+        model = glm::translate(model, glm::vec3(2.0f, 0.0f, 0.0f));
+        mirrorShader.setMat4("model", model);
+        glDrawArrays(GL_TRIANGLES, 0, 36);
+        
+        //Пол
+        ourShader.Use();
+        ourShader.setVec3("cameraPosition", cameraPosition);
         ourShader.setMat4("view", view);
         ourShader.setMat4("projection", projection);
         
-        //Отрисовка
-        //Пол
         glBindVertexArray(floorVAO);
         //Текстура
         glBindTexture(GL_TEXTURE_2D, texture2);
         //Пол 1
         ourShader.setMat4("model", glm::mat4(1.0f));
         glDrawArrays(GL_TRIANGLES, 0, 6);
-        
-        //Объекты
-        glBindVertexArray(objectVAO);
-        //Текстура
-        glBindTexture(GL_TEXTURE_2D, texture1);
-        //Куб 1
-        glm::mat4 model = glm::mat4(1.0f);
-        model = glm::translate(model, glm::vec3(-1.0f, 0.0f, -1.0f));
-        ourShader.setMat4("model", model);
-        glDrawArrays(GL_TRIANGLES, 0, 36);
-        //Куб2
-        model = glm::mat4(1.0f);
-        model = glm::translate(model, glm::vec3(2.0f, 0.0f, 0.0f));
-        ourShader.setMat4("model", model);
-        glDrawArrays(GL_TRIANGLES, 0, 36);
         
         //Травка
         glBindVertexArray(vegetationVAO);
@@ -629,27 +668,6 @@ int main()
             ourShader.setMat4("model", model);
             glDrawArrays(GL_TRIANGLES, 0, 6);
         }
-        
-        //Нулевой проход (скайбокс)
-        glDepthFunc(GL_LEQUAL);
-        skyShader.Use();
-        //Убрать составляющую передвижения
-        view = glm::mat4(glm::mat3(view));
-        //Проекция
-        /*
-        projection = glm::mat4(1.0f);
-        //fov,,distance_min,distance_max
-        projection = glm::perspective(glm::radians(fov), float(screenWidth) / float(screenHeight), 0.1f, 100.0f);
-        */
-
-        skyShader.setMat4("view", view);
-        skyShader.setMat4("projection", projection);
-        
-        glBindVertexArray(skyVAO);
-        glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
-        glDrawArrays(GL_TRIANGLES, 0, 36);
-        glDepthMask(GL_TRUE);
-        glDepthFunc(GL_LESS);
         glBindVertexArray(0);
         
         // второй проход
