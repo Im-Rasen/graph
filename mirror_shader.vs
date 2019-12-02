@@ -18,9 +18,13 @@ uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
 
+uniform float shiftX;
+uniform float shiftY;
+uniform float shiftZ;
+
 void main()
 {
-    gl_Position = projection * view * model * vec4(position, 1.0); //+shiftX
+    gl_Position = projection * view * model * vec4(position.x + shiftX, position.y + shiftY, position.z + shiftZ, 1.0); //+shiftX
     //Normal = normal;
     Position = vec3(model * vec4(position, 1.0f));
     Normal = mat3(transpose(inverse(model))) * normal;

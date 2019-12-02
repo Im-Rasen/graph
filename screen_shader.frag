@@ -17,11 +17,10 @@ void main()
     float average = (0.2126 * midColor.r + 0.7152 * midColor.g + 0.0722 * midColor.b) / 3.0;
     color = vec4(average, average, average, 1.0);
      */
-    /*
 
     // So it works with skybox
     
-    vec2 offsets[9] = vec2[](
+    /*vec2 offsets[9] = vec2[](
         vec2(-offset,  offset), // top-left
         vec2( 0.0f,    offset), // top-center
         vec2( offset,  offset), // top-right
@@ -32,27 +31,31 @@ void main()
         vec2( 0.0f,   -offset), // bottom-center
         vec2( offset, -offset)  // bottom-right
     );
-
-     //Наркотический трип (повышение резкозти)
+    /*
+    //Наркотический трип (повышение резкозти)
     float kernel[9] = float[](
         -1, -1, -1,
         -1,  9, -1,
         -1, -1, -1
     );
+     */
+    /*
     //Размытие
     float kernel[9] = float[](
         1.0 / 16, 2.0 / 16, 1.0 / 16,
         2.0 / 16, 4.0 / 16, 2.0 / 16,
         1.0 / 16, 2.0 / 16, 1.0 / 16
     );
-    
+    /*
     //Границы
     float kernel[9] = float[](
         -1, -1, -1,
         -1,  8, -1,
         -1, -1, -1
     );
-    
+     
+     */
+    /*
     vec3 sampleTex[9];
     for(int i = 0; i < 9; i++)
     {
@@ -63,7 +66,5 @@ void main()
         col += sampleTex[i] * kernel[i];
     
     color = vec4(col, 1.0);
-    
     */
-     
 }

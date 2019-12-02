@@ -637,28 +637,41 @@ int main()
         //Куб 1
         glm::mat4 model = glm::mat4(1.0f);
         model = glm::translate(model, glm::vec3(-1.0f, 0.0f, -1.0f));
+        GLfloat angle = (GLfloat)glfwGetTime() * glm::radians(15.0f);
+        model = glm::rotate(model, angle, glm::vec3(1.0f, 0.3f, 0.5f));
         mirrorShader.setMat4("model", model);
         glDrawArrays(GL_TRIANGLES, 0, 36);
         //Куб2
         model = glm::mat4(1.0f);
         model = glm::translate(model, glm::vec3(2.0f, 0.0f, 0.0f));
         mirrorShader.setMat4("model", model);
+        
+        GLfloat shiftX = sin(glfwGetTime()) * radius;
+        GLfloat shiftY = 0.0f;
+        GLfloat shiftZ = cos(glfwGetTime()) * radius;
+        mirrorShader.setFloat("shiftX", shiftX);
+        mirrorShader.setFloat("shiftX", shiftX);
+        mirrorShader.setFloat("shiftZ", shiftZ);
+        
         glDrawArrays(GL_TRIANGLES, 0, 36);
         
-        //Пол
+        
         ourShader.Use();
         ourShader.setVec3("cameraPosition", cameraPosition);
         ourShader.setMat4("view", view);
         ourShader.setMat4("projection", projection);
         
+        //Пол
+        /*
         glBindVertexArray(floorVAO);
         //Текстура
         glBindTexture(GL_TEXTURE_2D, texture2);
         //Пол 1
         ourShader.setMat4("model", glm::mat4(1.0f));
         glDrawArrays(GL_TRIANGLES, 0, 6);
+        */
         
-        //Травка
+        //Травка/Окна
         glBindVertexArray(vegetationVAO);
         glBindTexture(GL_TEXTURE_2D, texture3);
         for(std::map<float,glm::vec3>::reverse_iterator it = sorted.rbegin(); it != sorted.rend(); ++it)
