@@ -15,13 +15,14 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include <map>
 
 //Время, прошедшее между последним и текущим кадром
 GLfloat deltaTime = 0.0f;
 //Время вывода последнего кадра
 GLfloat lastFrame = 0.0f;
 //Степень смешивания тестур
-float mixRate = 0.0f;
+//float mixRate = 0.0f;
 //Буфер нажатий
 bool keys[1024];
 //Камера
@@ -40,21 +41,6 @@ bool firstMouse = true;
 GLfloat fov = 45.0f;
 //Освещение
 //glm::vec3 lightPosition(1.5f, 1.5f, 1.5f);
-float projDiffuseRate = 1.0f;
-glm::vec3 pointAmbient  = glm::vec3(0.05f);
-glm::vec3 pointDiffuse  = glm::vec3(0.6f);
-glm::vec3 pointSpecular = glm::vec3(0.7f);
-glm::vec3 dirAmbient    = glm::vec3(0.05f);
-glm::vec3 dirDiffuse    = glm::vec3(0.3f);
-glm::vec3 dirSpecular   = glm::vec3(0.4f);
-glm::vec3 projAmbient   = glm::vec3(0.05f);
-glm::vec3 projDiffuse   = glm::vec3(projDiffuseRate);
-glm::vec3 projSpecular  = glm::vec3(0.7f);
-
-bool flashlight = true;
-bool sun = true;
-bool lamps = true;
-
 
 //Реализация нажатий
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode);
@@ -63,6 +49,8 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 //Колесико мыши
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void doMovement();
+
+unsigned int loadCubemap(std::vector<std::string> faces);
 
 
 int main()
@@ -113,11 +101,23 @@ int main()
     glEnable(GL_DEPTH_TEST);
     //Заполнение полигонов
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    //Трафаретное тестирование
+    //glEnable(GL_STENCIL_TEST);
+    //Если оба теста пройдены, ставим значение из glStencilFunc (ниже)
+    //glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+    //Режим смешивания
+    glEnable(GL_BLEND);
+    //Прозрачность источника - для источника, 1-прозрачность источника - для приемника
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    //glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ZERO);
+    //glBlendEquation(GL_FUNC_SUBTRACT);
     
     //Шейдеры
     Shader ourShader("/Users/JulieClark/Documents/ВМК/graphics/mr_Meeseeks/mr_Meeseeks/graph/shader.vs", "/Users/JulieClark/Documents/ВМК/graphics/mr_Meeseeks/mr_Meeseeks/graph/shader.frag");
-    Shader lampShader("/Users/JulieClark/Documents/ВМК/graphics/mr_Meeseeks/mr_Meeseeks/graph/light_shader.vs","/Users/JulieClark/Documents/ВМК/graphics/mr_Meeseeks/mr_Meeseeks/graph/light_shader.frag");
-
+    Shader screenShader("/Users/JulieClark/Documents/ВМК/graphics/mr_Meeseeks/mr_Meeseeks/graph/screen_shader.vs", "/Users/JulieClark/Documents/ВМК/graphics/mr_Meeseeks/mr_Meeseeks/graph/screen_shader.frag");
+    Shader skyShader("/Users/JulieClark/Documents/ВМК/graphics/mr_Meeseeks/mr_Meeseeks/graph/sky_shader.vs", "/Users/JulieClark/Documents/ВМК/graphics/mr_Meeseeks/mr_Meeseeks/graph/sky_shader.frag");
+    Shader mirrorShader("/Users/JulieClark/Documents/ВМК/graphics/mr_Meeseeks/mr_Meeseeks/graph/mirror_shader.vs", "/Users/JulieClark/Documents/ВМК/graphics/mr_Meeseeks/mr_Meeseeks/graph/mirror_shader.frag");
+    
     //Куб
     float vertices[] = {
         // Позиции           // Текстурные // Нормали
@@ -164,44 +164,82 @@ int main()
         -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,  0.0f, 1.0f, 0.0f
     };
     
-    //Сдвиги кубиков
-    glm::vec3 cubePositions[] = {
-      glm::vec3( 0.0f,  7.0f,  0.0f),
-      glm::vec3( 2.0f,  5.0f, -15.0f),
-      glm::vec3(-1.5f, -2.2f, -2.5f),
-      glm::vec3(-3.8f, -2.0f, -12.3f),
-      glm::vec3( 2.4f, -1.5f, -3.5f),
-      glm::vec3(-1.7f,  3.0f, -7.5f),
-      glm::vec3( 1.3f, -2.0f, -2.5f),
-      glm::vec3( 1.5f,  2.0f, -2.5f),
-      glm::vec3( 1.5f,  0.8f, -1.5f),
-      glm::vec3(-1.3f,  1.0f, -1.5f)
-    };
-    
-    glm::vec3 pointLightPositions[] = {
-        glm::vec3( 0.7f,  0.5f,  2.0f),
-        glm::vec3( 2.3f, -3.3f, -4.0f),
-        glm::vec3(-4.0f,  5.0f, -12.0f),
-        glm::vec3( 0.0f,  4.0f, -3.0f)
-    };
-    
     float floorVertices[] = {
-        //Позиции               //Текстурные    //Нормали
-         5.0f, -0.5f,  5.0f,    2.0f, 0.0f,     0.0f, 1.0f, 0.0f,
-        -5.0f, -0.5f,  5.0f,    0.0f, 0.0f,     0.0f, 1.0f, 0.0f,
-        -5.0f, -0.5f, -5.0f,    0.0f, 2.0f,     0.0f, 1.0f, 0.0f,
+        //Позиции             //Текстурные
+         5.0f, -0.5001f,  5.0f,  2.0f, 0.0f,
+        -5.0f, -0.5001f,  5.0f,  0.0f, 0.0f,
+        -5.0f, -0.5001f, -5.0f,  0.0f, 2.0f,
 
-         5.0f, -0.5f,  5.0f,    2.0f, 0.0f,     0.0f, 1.0f, 0.0f,
-        -5.0f, -0.5f, -5.0f,    0.0f, 2.0f,     0.0f, 1.0f, 0.0f,
-         5.0f, -0.5f, -5.0f,    2.0f, 2.0f,     0.0f, 1.0f, 0.0f,
-        //Пытаюсь сделать пол двусторонним
-         5.0f, -0.501f,  5.0f,    2.0f, 0.0f,     0.0f, -1.0f, 0.0f,
-        -5.0f, -0.501f,  5.0f,    0.0f, 0.0f,     0.0f, -1.0f, 0.0f,
-        -5.0f, -0.501f, -5.0f,    0.0f, 2.0f,     0.0f, -1.0f, 0.0f,
+         5.0f, -0.5001f,  5.0f,  2.0f, 0.0f,
+        -5.0f, -0.5001f, -5.0f,  0.0f, 2.0f,
+         5.0f, -0.5001f, -5.0f,  2.0f, 2.0f
+    };
+    
+    float vegetationVertices[] = {
+       //Позиции            //Текстурные
+       0.0f,  0.5f,  0.0f,  0.0f, 1.0f,
+       0.0f, -0.5f,  0.0f,  0.0f, 0.0f,
+       1.0f, -0.5f,  0.0f,  1.0f, 0.0f,
 
-         5.0f, -0.501f,  5.0f,    2.0f, 0.0f,     0.0f, -1.0f, 0.0f,
-        -5.0f, -0.501f, -5.0f,    0.0f, 2.0f,     0.0f, -1.0f, 0.0f,
-         5.0f, -0.501f, -5.0f,    2.0f, 2.0f,     0.0f, -1.0f, 0.0f
+       0.0f,  0.5f,  0.0f,  0.0f, 1.0f,
+       1.0f, -0.5f,  0.0f,  1.0f, 0.0f,
+       1.0f,  0.5f,  0.0f,  1.0f, 1.0f
+    };
+    
+    float quadVertices[] = { //fills the entire screen in Normalized Device Coordinates.
+        // positions   // texCoords
+        -1.0f,  1.0f,  0.0f, 1.0f,
+        -1.0f, -1.0f,  0.0f, 0.0f,
+         1.0f, -1.0f,  1.0f, 0.0f,
+
+        -1.0f,  1.0f,  0.0f, 1.0f,
+         1.0f, -1.0f,  1.0f, 0.0f,
+         1.0f,  1.0f,  1.0f, 1.0f
+    };
+    
+    float skyVertices[] = {
+        // positions
+        -1.0f,  1.0f, -1.0f,
+        -1.0f, -1.0f, -1.0f,
+         1.0f, -1.0f, -1.0f,
+         1.0f, -1.0f, -1.0f,
+         1.0f,  1.0f, -1.0f,
+        -1.0f,  1.0f, -1.0f,
+
+        -1.0f, -1.0f,  1.0f,
+        -1.0f, -1.0f, -1.0f,
+        -1.0f,  1.0f, -1.0f,
+        -1.0f,  1.0f, -1.0f,
+        -1.0f,  1.0f,  1.0f,
+        -1.0f, -1.0f,  1.0f,
+
+         1.0f, -1.0f, -1.0f,
+         1.0f, -1.0f,  1.0f,
+         1.0f,  1.0f,  1.0f,
+         1.0f,  1.0f,  1.0f,
+         1.0f,  1.0f, -1.0f,
+         1.0f, -1.0f, -1.0f,
+
+        -1.0f, -1.0f,  1.0f,
+        -1.0f,  1.0f,  1.0f,
+         1.0f,  1.0f,  1.0f,
+         1.0f,  1.0f,  1.0f,
+         1.0f, -1.0f,  1.0f,
+        -1.0f, -1.0f,  1.0f,
+
+        -1.0f,  1.0f, -1.0f,
+         1.0f,  1.0f, -1.0f,
+         1.0f,  1.0f,  1.0f,
+         1.0f,  1.0f,  1.0f,
+        -1.0f,  1.0f,  1.0f,
+        -1.0f,  1.0f, -1.0f,
+
+        -1.0f, -1.0f, -1.0f,
+        -1.0f, -1.0f,  1.0f,
+         1.0f, -1.0f, -1.0f,
+         1.0f, -1.0f, -1.0f,
+        -1.0f, -1.0f,  1.0f,
+         1.0f, -1.0f,  1.0f
     };
     
     //VBO, VAO, EBO
@@ -210,22 +248,12 @@ int main()
     glGenVertexArrays(1, &objectVAO);
     
     //Создаем Vertex Buffer Objects
-    GLuint VBO;
-    glGenBuffers(1, &VBO);
+    GLuint objectVBO;
+    glGenBuffers(1, &objectVBO);
     //Привязка буфера к VBO
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBindBuffer(GL_ARRAY_BUFFER, objectVBO);
     //Копируем вершинные данные в буфер + GL_STATIC_DRAW/GL_DYNAMIC_DRAW/GL_STREAM_DRAW
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-    
-    /*
-    //Создаем Element Buffer Object
-    GLuint EBO;
-    glGenBuffers(1, &EBO);
-    //Привязка буфера к EBO
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-    //Копируем вершинные данные в буфер
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
-     */
     
     //Привязка VAO
     glBindVertexArray(objectVAO);
@@ -235,33 +263,17 @@ int main()
     // Атрибут с координатами
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (GLvoid*)0);
     glEnableVertexAttribArray(0);
-    /*
-    // Атрибут с цветом
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (GLvoid*)(3* sizeof(GLfloat)));
-    glEnableVertexAttribArray(1);
-     */
     // Атрибут с текстурой
-    glVertexAttribPointer(2, 2, GL_FLOAT,GL_FALSE, 8 * sizeof(GLfloat), (GLvoid*)(3 * sizeof(GLfloat)));
+    glVertexAttribPointer(1, 2, GL_FLOAT,GL_FALSE, 8 * sizeof(GLfloat), (GLvoid*)(3 * sizeof(GLfloat)));
+    glEnableVertexAttribArray(1);
+    // Атрибут с нормалями
+    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (GLvoid*)(5 * sizeof(GLfloat)));
     glEnableVertexAttribArray(2);
-    //Атрибут с нормалью
-    glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (GLvoid*)(5 * sizeof(GLfloat)));
-    glEnableVertexAttribArray(3);
     
-    //Создание VAO для лампы
-    GLuint lightVAO;
-    glGenVertexArrays(1, &lightVAO);
-    //Привязка VAO
-    glBindVertexArray(lightVAO);
-    //Привязка буфера к VBO (VBO - тот же)
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    // Атрибут с координатами
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (GLvoid*)0);
-    glEnableVertexAttribArray(0);
-    
-    //VAO для Пола
+    //Пол
     GLuint floorVAO;
     glGenVertexArrays(1, &floorVAO);
-
+    
     GLuint floorVBO;
     glGenBuffers(1, &floorVBO);
     glBindBuffer(GL_ARRAY_BUFFER, floorVBO);
@@ -269,14 +281,102 @@ int main()
     glBindVertexArray(floorVAO);
     //Устанавливаем указатели на вершинные атрибуты //location = 0, vec3,,normalize,step_between_data_packs,смещение_начала_данных
     // Атрибут с координатами
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (GLvoid*)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (GLvoid*)0);
     glEnableVertexAttribArray(0);
     // Атрибут с текстурой
-    glVertexAttribPointer(2, 2, GL_FLOAT,GL_FALSE, 8 * sizeof(GLfloat), (GLvoid*)(3 * sizeof(GLfloat)));
-    glEnableVertexAttribArray(2);
-    //Атрибут с нормалью
-    glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (GLvoid*)(5 * sizeof(GLfloat)));
-    glEnableVertexAttribArray(3);
+    glVertexAttribPointer(1, 2, GL_FLOAT,GL_FALSE, 5 * sizeof(GLfloat), (GLvoid*)(3 * sizeof(GLfloat)));
+    glEnableVertexAttribArray(1);
+    
+    //Травка
+    GLuint vegetationVAO;
+    glGenVertexArrays(1, &vegetationVAO);
+    
+    GLuint vegetationVBO;
+    glGenBuffers(1, &vegetationVBO);
+    glBindBuffer(GL_ARRAY_BUFFER, vegetationVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vegetationVertices), vegetationVertices, GL_STATIC_DRAW);
+    glBindVertexArray(vegetationVAO);
+    //Устанавливаем указатели на вершинные атрибуты //location = 0, vec3,,normalize,step_between_data_packs,смещение_начала_данных
+    // Атрибут с координатами
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (GLvoid*)0);
+    glEnableVertexAttribArray(0);
+    //Атрибут с текстурой
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (GLvoid*)(3 * sizeof(GLfloat)));
+    glEnableVertexAttribArray(1);
+    
+    //Квад
+    GLuint quadVAO;
+    glGenVertexArrays(1, &quadVAO);
+    
+    GLuint quadVBO;
+    glGenBuffers(1, &quadVBO);
+    glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), quadVertices, GL_STATIC_DRAW);
+    glBindVertexArray(quadVAO);
+    //Устанавливаем указатели на вершинные атрибуты //location = 0, vec3,,normalize,step_between_data_packs,смещение_начала_данных
+    // Атрибут с координатами
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(GLfloat), (GLvoid*)0);
+    glEnableVertexAttribArray(0);
+    // Атрибут с текстурой
+    glVertexAttribPointer(1, 2, GL_FLOAT,GL_FALSE, 4 * sizeof(GLfloat), (GLvoid*)(2 * sizeof(GLfloat)));
+    glEnableVertexAttribArray(1);
+    
+    glBindVertexArray(0);
+    
+    
+    //Скайбокс
+    GLuint skyVAO;
+    glGenVertexArrays(1, &skyVAO);
+    
+    GLuint skyVBO;
+    glGenBuffers(1, &skyVBO);
+    glBindBuffer(GL_ARRAY_BUFFER, skyVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(skyVertices), skyVertices, GL_STATIC_DRAW);
+    glBindVertexArray(skyVAO);
+    //Устанавливаем указатели на вершинные атрибуты //location = 0, vec3,,normalize,step_between_data_packs,смещение_начала_данных
+    // Атрибут с координатами
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid*)0);
+    glEnableVertexAttribArray(0);
+    
+    glBindVertexArray(0);
+    
+    
+    //Кадровый буфер (текстурный, для цвета)
+    unsigned int fbo;
+    glGenFramebuffers(1, &fbo);
+    glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+    
+    //Текстура для кадрового буфера
+    unsigned int texColorBuffer;
+    glGenTextures(1, &texColorBuffer);
+    glBindTexture(GL_TEXTURE_2D, texColorBuffer);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, screenWidth, screenHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL); //NULL - тк только выделяем память
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glBindTexture(GL_TEXTURE_2D, 0);
+    
+    //Прикрепление текстуры
+    //Чтение/запись,тип подключения(цвет/глубина/трафарет),тип текстур,текстура,МИП-уровень для вывода
+    //GL_DEPTH_ATTACHMENT -> format и internalformat объекта текстуры должны принять значение GL_DEPTH_COMPONENT
+    //GL_STENCIL_ATTACHMENT -> параметры формата текстуры – GL_STENCIL_INDEX
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texColorBuffer, 0);
+    
+    //Рендербуфер для глубины и трафарета)
+    unsigned int rbo;
+    glGenRenderbuffers(1, &rbo);
+    glBindRenderbuffer(GL_RENDERBUFFER, rbo);
+    //Созидание
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, screenWidth, screenHeight);
+    //Подключение к кадровому буферу
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rbo);
+    glBindRenderbuffer(GL_RENDERBUFFER, 0);
+    //Присоединяем объект рендербуфера к совмещенной точке прикрепления глубины и трафарета буфера кадра
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rbo);
+    //Ошибки
+    if(glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+        std::cout << "ERROR::FRAMEBUFFER:: Framebuffer is not complete!" << std::endl;
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    
     
     
     //___Текстуры___
@@ -290,14 +390,6 @@ int main()
     //Параметры семплинга
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_MIRRORED_REPEAT); // 3D
-    /* Для GL_CLAMP_TO_BORDER параметра
-    float borderColor[] = { 1.0f, 1.0f, 0.0f, 1.0f };
-    glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
-    */
-
-    // select modulate to mix texture with color for shading
-    //glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
 
     //Параметры МипМапов
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR); //GL_LINEAR_MIPMAP_LINEAR / GL_LINEAR / GL_NEAREST
@@ -309,7 +401,7 @@ int main()
     unsigned texwidth, texheight;
 
     //Декодирование
-    unsigned error = lodepng::decode(image, texwidth, texheight, "/Users/JulieClark/Documents/ВМК/graphics/mr_Meeseeks/mr_Meeseeks/graph/container2.png");
+    unsigned error = lodepng::decode(image, texwidth, texheight, "/Users/JulieClark/Documents/ВМК/graphics/mr_Meeseeks/mr_Meeseeks/graph/container.png");
 
     //Ошибки
     if(error) std::cout << "DECODER::ERROR " << error << ": " << lodepng_error_text(error) << std::endl;
@@ -319,9 +411,9 @@ int main()
     //Генерация текстуры
     //Цель,уровень мипмапа,формат хранения,ширина,высота,прост,формат и тип данных исходника,данные изображения
     if (data){
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, texwidth, texheight, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
-    //Генерация мипмапов
-    glGenerateMipmap(GL_TEXTURE_2D);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, texwidth, texheight, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+        //Генерация мипмапов
+        glGenerateMipmap(GL_TEXTURE_2D);
     }
     else
     {
@@ -338,29 +430,21 @@ int main()
     GLuint texture2;
     glGenTextures(1, &texture2);
     //Привязка конкретной текстуры
-    glActiveTexture(GL_TEXTURE1); //Активируем текстурный блок
+    glActiveTexture(GL_TEXTURE0); //Активируем текстурный блок
     glBindTexture(GL_TEXTURE_2D, texture2);
     
     //Параметры семплинга
-       glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
-       glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
-       //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_MIRRORED_REPEAT); // 3D
-       /* Для GL_CLAMP_TO_BORDER параметра
-        float borderColor[] = { 1.0f, 1.0f, 0.0f, 1.0f };
-        glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
-        */
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
        
-       // select modulate to mix texture with color for shading
-       //glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
-       
-       //Параметры МипМапов
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);//GL_LINEAR_MIPMAP_LINEAR / GL_LINEAR / GL_NEAREST
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    //Параметры МипМапов
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);//GL_LINEAR_MIPMAP_LINEAR / GL_LINEAR / GL_NEAREST
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     
     
     //Загрузка lodepng
     //Декодирование
-    error = lodepng::decode(image, texwidth, texheight, "/Users/JulieClark/Documents/ВМК/graphics/mr_Meeseeks/mr_Meeseeks/graph/container2_specular.png");
+    error = lodepng::decode(image, texwidth, texheight, "/Users/JulieClark/Documents/ВМК/graphics/mr_Meeseeks/mr_Meeseeks/graph/metal.png");
 
     //Ошибки
     if(error) std::cout << "DECODER::ERROR " << error << ": " << lodepng_error_text(error) << std::endl;
@@ -370,9 +454,9 @@ int main()
     //Генерация текстуры
     //Цель,уровень мипмапа,формат хранения,ширина,высота,прост,формат и тип данных исходника,данные изображения
     if (data){
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, texwidth, texheight, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
-    //Генерация мипмапов
-    glGenerateMipmap(GL_TEXTURE_2D);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, texwidth, texheight, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+        //Генерация мипмапов
+        glGenerateMipmap(GL_TEXTURE_2D);
     }
     else
     {
@@ -383,34 +467,27 @@ int main()
     std::vector<unsigned char>().swap(image);
     glBindTexture(GL_TEXTURE_2D, 0);
     
-    //-------------------------------------------------------------
+    //---------------------------------------------------------
     
+    //Идентификатор текстуры
     GLuint texture3;
     glGenTextures(1, &texture3);
     //Привязка конкретной текстуры
-    glActiveTexture(GL_TEXTURE2); //Активируем текстурный блок
+    glActiveTexture(GL_TEXTURE0); //Активируем текстурный блок
     glBindTexture(GL_TEXTURE_2D, texture3);
     
     //Параметры семплинга
-       glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-       glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-       //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_MIRRORED_REPEAT); // 3D
-       /* Для GL_CLAMP_TO_BORDER параметра
-        float borderColor[] = { 1.0f, 1.0f, 0.0f, 1.0f };
-        glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
-        */
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
        
-       // select modulate to mix texture with color for shading
-       //glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
-       
-       //Параметры МипМапов
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);//GL_LINEAR_MIPMAP_LINEAR / GL_LINEAR / GL_NEAREST
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    //Параметры МипМапов
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);//GL_LINEAR_MIPMAP_LINEAR / GL_LINEAR / GL_NEAREST
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     
     
     //Загрузка lodepng
     //Декодирование
-    error = lodepng::decode(image, texwidth, texheight, "/Users/JulieClark/Documents/ВМК/graphics/mr_Meeseeks/mr_Meeseeks/graph/wood.png");
+    error = lodepng::decode(image, texwidth, texheight, "/Users/JulieClark/Documents/ВМК/graphics/mr_Meeseeks/mr_Meeseeks/graph/window.png");
 
     //Ошибки
     if(error) std::cout << "DECODER::ERROR " << error << ": " << lodepng_error_text(error) << std::endl;
@@ -420,9 +497,9 @@ int main()
     //Генерация текстуры
     //Цель,уровень мипмапа,формат хранения,ширина,высота,прост,формат и тип данных исходника,данные изображения
     if (data){
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, texwidth, texheight, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
-    //Генерация мипмапов
-    glGenerateMipmap(GL_TEXTURE_2D);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, texwidth, texheight, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+        //Генерация мипмапов
+        glGenerateMipmap(GL_TEXTURE_2D);
     }
     else
     {
@@ -433,58 +510,32 @@ int main()
     std::vector<unsigned char>().swap(image);
     glBindTexture(GL_TEXTURE_2D, 0);
     
-    //--------------------------------------------------------------
+    //----------------------------------------------------------
     
-    //Идентификатор текстуры
-    GLuint texture4;
-    glGenTextures(1, &texture4);
-    //Привязка конкретной текстуры
-    glActiveTexture(GL_TEXTURE3); //Активируем текстурный блок
-    glBindTexture(GL_TEXTURE_2D, texture4);
-    
-    //Параметры семплинга
-       glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
-       glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
-       //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_MIRRORED_REPEAT); // 3D
-       /* Для GL_CLAMP_TO_BORDER параметра
-        float borderColor[] = { 1.0f, 1.0f, 0.0f, 1.0f };
-        glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
-        */
-       
-       // select modulate to mix texture with color for shading
-       //glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
-       
-       //Параметры МипМапов
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);//GL_LINEAR_MIPMAP_LINEAR / GL_LINEAR / GL_NEAREST
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    
-    
-    //Загрузка lodepng
-    //Декодирование
-    error = lodepng::decode(image, texwidth, texheight, "/Users/JulieClark/Documents/ВМК/graphics/mr_Meeseeks/mr_Meeseeks/graph/wood_specular.png");
-
-    //Ошибки
-    if(error) std::cout << "DECODER::ERROR " << error << ": " << lodepng_error_text(error) << std::endl;
-    
-    data = &image[0]; //RGBARGBARGBA...
-    
-    //Генерация текстуры
-    //Цель,уровень мипмапа,формат хранения,ширина,высота,прост,формат и тип данных исходника,данные изображения
-    if (data){
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, texwidth, texheight, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
-    //Генерация мипмапов
-    glGenerateMipmap(GL_TEXTURE_2D);
-    }
-    else
+    //Кубическая карта
+    std::vector<std::string> faces
     {
-        std::cout << "ERROR IN TEXTURE LOADING" << std::endl;
-    }
+        "/Users/JulieClark/Documents/ВМК/graphics/mr_Meeseeks/mr_Meeseeks/graph/right.png",
+        "/Users/JulieClark/Documents/ВМК/graphics/mr_Meeseeks/mr_Meeseeks/graph/left.png",
+        "/Users/JulieClark/Documents/ВМК/graphics/mr_Meeseeks/mr_Meeseeks/graph/top.png",
+        "/Users/JulieClark/Documents/ВМК/graphics/mr_Meeseeks/mr_Meeseeks/graph/bottom.png",
+        "/Users/JulieClark/Documents/ВМК/graphics/mr_Meeseeks/mr_Meeseeks/graph/front.png",
+        "/Users/JulieClark/Documents/ВМК/graphics/mr_Meeseeks/mr_Meeseeks/graph/back.png"
+    };
     
-    //Освобождение памяти и отвзяка от изображения
-    std::vector<unsigned char>().swap(image);
-    glBindTexture(GL_TEXTURE_2D, 0);
+    unsigned int cubemapTexture = loadCubemap(faces);
     
     //---Texture::END---
+    
+    //Позиции окошек
+    std::vector<glm::vec3> windows
+    {
+        glm::vec3(-1.5f,  0.0f, -0.48f),
+        glm::vec3( 1.5f,  0.0f,  0.51f),
+        glm::vec3( 0.0f,  0.0f,  0.7f),
+        glm::vec3(-0.3f,  0.0f, -2.3f),
+        glm::vec3( 0.5f,  0.0f, -0.6f)
+    };
     
     //Игровой цикл
     while(!glfwWindowShouldClose(window))
@@ -505,239 +556,143 @@ int main()
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
         
-        //Фоновый цвет
+        
+        // Первый проход
+        glBindFramebuffer(GL_FRAMEBUFFER, fbo);
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // буфер трафарета не используется
+        glEnable(GL_DEPTH_TEST);
         
-        
-        //Шейдер
-        
-        ourShader.Use();
-        //ourShader.setVec3("material.ambient",  1.0f, 0.5f, 0.31f);
-        ourShader.setInt("material.ambient", 0);
-        //ourShader.setVec3("material.diffuse",  1.0f, 0.5f, 0.31f);
-        ourShader.setInt("material.diffuse", 0);
-        //ourShader.setVec3("material.specular", 0.5f, 0.5f, 0.5f);
-        ourShader.setInt("material.specular", 1);
-        ourShader.setFloat("material.shininess", 32.0f);
-        
-        //Направленный свет
-        ourShader.setVec3("dirLight.direction", -0.2f, -1.0f, -0.3f);
-        ourShader.setVec3("dirLight.ambient", dirAmbient);
-        ourShader.setVec3("dirLight.diffuse", dirDiffuse);
-        ourShader.setVec3("dirLight.specular", dirSpecular);
-        
-        //Точечный свет
-        ourShader.setVec3("light[0].position", pointLightPositions[0]);
-        ourShader.setVec3("light[0].specular", pointSpecular);
-        ourShader.setVec3("light[0].ambient", pointAmbient);
-        ourShader.setVec3("light[0].diffuse", pointDiffuse);
-        ourShader.setFloat("light[0].constant", 1.0f);
-        ourShader.setFloat("light[0].linear", 0.09f);
-        ourShader.setFloat("light[0].quadratic", 0.032f);
-        
-        ourShader.setVec3("light[1].position", pointLightPositions[1]);
-        ourShader.setVec3("light[1].specular", pointSpecular);
-        ourShader.setVec3("light[1].ambient", pointAmbient);
-        ourShader.setVec3("light[1].diffuse", pointDiffuse);
-        ourShader.setFloat("light[1].constant", 1.0f);
-        ourShader.setFloat("light[1].linear", 0.09f);
-        ourShader.setFloat("light[1].quadratic", 0.032f);
-        
-        ourShader.setVec3("light[2].position", pointLightPositions[2]);
-        ourShader.setVec3("light[2].specular", pointSpecular);
-        ourShader.setVec3("light[2].ambient", pointAmbient);
-        ourShader.setVec3("light[2].diffuse", pointDiffuse);
-        ourShader.setFloat("light[2].constant", 1.0f);
-        ourShader.setFloat("light[2].linear", 0.09f);
-        ourShader.setFloat("light[2].quadratic", 0.032f);
-        
-        ourShader.setVec3("light[3].position", pointLightPositions[3]);
-        ourShader.setVec3("light[3].specular", pointSpecular);
-        ourShader.setVec3("light[3].ambient", pointAmbient);
-        ourShader.setVec3("light[3].diffuse", pointDiffuse);
-        ourShader.setFloat("light[3].constant", 1.0f);
-        ourShader.setFloat("light[3].linear", 0.09f);
-        ourShader.setFloat("light[3].quadratic", 0.032f);
-        
-        //Фонарик
-        ourShader.setVec3("projLight.position", cameraPosition);
-        ourShader.setVec3("projLight.direction", cameraFront);
-        ourShader.setFloat("projLight.cutOff", glm::cos(glm::radians(12.5f)));
-        ourShader.setFloat("projLight.outerCutOff", glm::cos(glm::radians(15.5f)));
-        ourShader.setVec3("projLight.ambient",  projAmbient);
-        ourShader.setVec3("projLight.diffuse", projDiffuse);
-        ourShader.setVec3("projLight.specular", projDiffuse);
-        ourShader.setFloat("projLight.constant", 1.0f);
-        ourShader.setFloat("projLight.linear", 0.09f);
-        ourShader.setFloat("projLight.quadratic", 0.032f);
-               
-        
-        
-        /*
-        glm::vec3 lightColor;
-        lightColor.x = sin(glfwGetTime() * 2.0f);
-        lightColor.y = sin(glfwGetTime() * 0.7f);
-        lightColor.z = sin(glfwGetTime() * 1.3f);
-        glm::vec3 diffuseColor = lightColor   * glm::vec3(0.5f); // decrease the influence
-        glm::vec3 ambientColor = diffuseColor * glm::vec3(0.2f); // low influence
-        ourShader.setVec3("light.ambient", ambientColor);
-        ourShader.setVec3("light.diffuse", diffuseColor);
-         */
-        
-        
-        
-        
-        //ourShader.setVec3("lightPosition", lightPosition);
-        glm::vec3 viewPosition = glm::vec3(cameraPosition); //???
-        ourShader.setVec3("viewPosition", viewPosition);
-        
-        //ourShader.setFloat("shiftX", 0.5);
-        //ourShader.setFloat("mixRate", mixRate);
-        
-        //Обновление uniform
-        
-        //Цвет
-        /*
-        GLfloat timeValue = glfwGetTime();
-        GLfloat greenValue = (sin(timeValue) / 2) + 0.5; //0.0 .. 1.0
-        ourShader.setVec4("ourColor", 0.0f, greenValue, 0.0f, 1.0f);
-         */
-        
-        //glm::vec3 lightColor = glm::vec3(1.0f, 1.0f, 1.0f);
-        //glm::vec3 objectColor = glm::vec3(1.0f, 0.5f, 0.3f);
-        //ourShader.setVec3("lightColor", lightColor);
-        //ourShader.setVec3("objectColor", objectColor);
-        
-        
-        //Локальные -> Мировые координаты
-        glm::mat4 model = glm::mat4(1.0f);
-        //model = glm::rotate(model, (GLfloat)glfwGetTime() * glm::radians(50.0f), glm::vec3(0.5f, 1.0f, 0.0f));
-        //model = glm::rotate(model, -glm::radians(55.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-        ourShader.setMat4("model", model);
-        
-        //Движение сцены относительно Камеры
+        //Скайбокс
+        glDepthMask(GL_FALSE);
+        skyShader.Use();
+        //Видовая
         glm::mat4 view = glm::mat4(1.0f);
-        //view = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f));
-        //view = glm::rotate(view, (GLfloat)glfwGetTime() * 0.5f, glm::vec3(0.5, 0.3, 0.0));
         //Камера (Грама-Шмидта)
-        GLfloat radius = 5.0f;
-        //GLfloat camX = sin(glfwGetTime()) * radius;
-        //GLfloat camY = 5.0f;
-        //GLfloat camZ = cos(glfwGetTime()) * radius;
-        //cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
-        //cameraPosition = glm::vec3(camX, camY, camZ);
-        //glm::vec3 cameraTarget = glm::vec3(0.0f, 0.0f, 0.0f);
+        GLfloat radius = 2.0f;
         glm::vec3 cameraDirection = glm::normalize(cameraPosition - cameraTarget); // Камера -> Z+
         glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f);
         glm::vec3 cameraRight = glm::normalize(glm::cross(up, cameraDirection)); // Камера -> X+
         cameraUp = glm::cross(cameraDirection, cameraRight); // Камера -> Y+
         //Позиция камеры, Цель камеры, Орт вверх
-        //view = glm::lookAt(cameraPosition, cameraTarget, up);
+        view = glm::lookAt(cameraPosition, cameraPosition + cameraFront, up);
+        //Убрать составляющую передвижения
+        view = glm::mat4(glm::mat3(view));
+        //Проекция
+        glm::mat4 projection = glm::mat4(1.0f);
+        //fov,,distance_min,distance_max
+        projection = glm::perspective(glm::radians(fov), float(screenWidth) / float(screenHeight), 0.1f, 100.0f);
+
+        skyShader.setMat4("view", view);
+        skyShader.setMat4("projection", projection);
+        
+        glBindVertexArray(skyVAO);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
+        glDrawArrays(GL_TRIANGLES, 0, 36);
+        glDepthMask(GL_TRUE);
+        
+        
+        //Сортировка по расстоянию до наблюдателя прозрачных объектов
+        std::map<float, glm::vec3> sorted;
+        for (unsigned int i = 0; i < windows.size(); i++)
+        {
+            float distance = glm::length(cameraPosition - windows[i]);
+            sorted[distance] = windows[i];
+        }
+
+        //Шейдер
+        
+        mirrorShader.Use();
+        mirrorShader.setVec3("cameraPosition", cameraPosition);
+
+        //view
+        view = glm::mat4(1.0f);
+        //Камера (Грама-Шмидта)
+        radius = 2.0f;
+        cameraDirection = glm::normalize(cameraPosition - cameraTarget); // Камера -> Z+
+        up = glm::vec3(0.0f, 1.0f, 0.0f);
+        cameraRight = glm::normalize(glm::cross(up, cameraDirection)); // Камера -> X+
+        cameraUp = glm::cross(cameraDirection, cameraRight); // Камера -> Y+
+        //Позиция камеры, Цель камеры, Орт вверх
         view = glm::lookAt(cameraPosition, cameraPosition + cameraFront, up);
         // [R_x R_y R_z 0]   [1 0 0 -P_x]
         // [U_x U_y U_z 0] * [0 1 0 -P_y]
         // [D_x D_y D_z 0]   [0 0 1 -P_z]
         // [0   0   0   1]   [0 0 0   1 ]
-        ourShader.setMat4("view", view);
-
         
         //Проекция
-        glm::mat4 projection = glm::mat4(1.0f);
+        projection = glm::mat4(1.0f);
         //fov,,distance_min,distance_max
         projection = glm::perspective(glm::radians(fov), float(screenWidth) / float(screenHeight), 0.1f, 100.0f);
+        
+        mirrorShader.setMat4("view", view);
+        mirrorShader.setMat4("projection", projection);
+        
+        
+        //Объекты
+        glBindVertexArray(objectVAO);
+        //Текстура
+        //glBindTexture(GL_TEXTURE_2D, texture1);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
+        //Куб 1
+        glm::mat4 model = glm::mat4(1.0f);
+        model = glm::translate(model, glm::vec3(-1.0f, 0.0f, -1.0f));
+        GLfloat angle = (GLfloat)glfwGetTime() * glm::radians(15.0f);
+        model = glm::rotate(model, angle, glm::vec3(1.0f, 0.3f, 0.5f));
+        mirrorShader.setMat4("model", model);
+        glDrawArrays(GL_TRIANGLES, 0, 36);
+        //Куб2
+        model = glm::mat4(1.0f);
+        model = glm::translate(model, glm::vec3(2.0f, 0.0f, 0.0f));
+        mirrorShader.setMat4("model", model);
+        
+        GLfloat shiftX = sin(glfwGetTime()) * radius;
+        GLfloat shiftY = 0.0f;
+        GLfloat shiftZ = cos(glfwGetTime()) * radius;
+        mirrorShader.setFloat("shiftX", shiftX);
+        mirrorShader.setFloat("shiftX", shiftX);
+        mirrorShader.setFloat("shiftZ", shiftZ);
+        
+        glDrawArrays(GL_TRIANGLES, 0, 36);
+        
+        
+        ourShader.Use();
+        ourShader.setVec3("cameraPosition", cameraPosition);
+        ourShader.setMat4("view", view);
         ourShader.setMat4("projection", projection);
         
-        //Трансформация
-        /*
-        glm::mat4 trans(1.0f);
-        trans = glm::translate(trans, glm::vec3(0.5f, -0.5f, 0.0f));
-        trans = glm::rotate(trans, (GLfloat)glfwGetTime() * glm::radians(50.0f), glm::vec3(0.0, 0.0, 1.0));
-        trans = glm::scale(trans, glm::vec3(0.5, 0.5, 0.5));
-        //ourShader.setMat4("transform", trans);
-         */
-        
-        //glUseProgram(ourShader.Program);
-        
-        
-
-        glBindVertexArray(objectVAO);
-        
-        
-        //Текстуры
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, texture1);
-        //glUniform1i(glGetUniformLocation(ourShader.Program, "diffuseTexture"), 0);
-        
-        glActiveTexture(GL_TEXTURE1);
-        glBindTexture(GL_TEXTURE_2D, texture2);
-        //glUniform1i(glGetUniformLocation(ourShader.Program, "specularTexture"), 1);
-         
-
-        
-        //glActiveTexture(GL_TEXTURE0); //Активируем текстурный блок
-        //glBindTexture(GL_TEXTURE_2D, texture1);
-        
-        //Отрисовка
-        //glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-        //glDrawArrays(GL_TRIANGLES, 0, 36);
-        
-        for(GLuint i = 0; i < 10; i++)
-        {
-            glm::mat4 model(1.0f);
-            model = glm::translate(model, cubePositions[i]);
-            GLfloat angle = (GLfloat)glfwGetTime() * glm::radians(15.0f + i*10.0f);
-            model = glm::rotate(model, angle, glm::vec3(1.0f, 0.3f, 0.5f));
-            ourShader.setMat4("model", model);
-
-          glDrawArrays(GL_TRIANGLES, 0, 36);
-        }
-        
         //Пол
-        ourShader.setInt("material.ambient", 2);
-        ourShader.setInt("material.diffuse", 2);
-        ourShader.setInt("material.specular", 3);
-        glBindVertexArray(floorVAO);
-        //Текстуры
-        glActiveTexture(GL_TEXTURE2);
-        glBindTexture(GL_TEXTURE_2D, texture3);
-        glActiveTexture(GL_TEXTURE3);
-        glBindTexture(GL_TEXTURE_2D, texture4);
-        ourShader.setMat4("model", glm::mat4(1.0f));
-        ourShader.setFloat("shiftX", 0.0f);
-        ourShader.setFloat("shiftY", 0.0f);
-        ourShader.setFloat("shiftZ", 0.0f);
-        glDrawArrays(GL_TRIANGLES, 0, 12);
-        
-        //Лампа
-        lampShader.Use();
         /*
-        GLfloat shiftX = 1.5f * sin(glfwGetTime()/3); // * radius;
-        GLfloat shiftY = lightPosition.y;
-        GLfloat shiftZ = 1.5f * cos(glfwGetTime()/3); // * radius;
-        glm::vec3 shift = glm::vec3(shiftX, shiftY, shiftZ);
-        lightPosition = shift;
-         
-        model = glm::rotate(model, (GLfloat)glfwGetTime() * glm::radians(50.0f), glm::vec3(0.5f, 1.0f, 0.0f));
-         */
+        glBindVertexArray(floorVAO);
+        //Текстура
+        glBindTexture(GL_TEXTURE_2D, texture2);
+        //Пол 1
+        ourShader.setMat4("model", glm::mat4(1.0f));
+        glDrawArrays(GL_TRIANGLES, 0, 6);
+        */
         
-        
-        //lampShader.setFloat("shiftX", shiftX);
-        //lampShader.setFloat("shiftZ", shiftZ);
-        
-        lampShader.setMat4("view", view);
-        lampShader.setMat4("projection", projection);
-        
-        glBindVertexArray(lightVAO);
-        for (int i = 0; i < NR_POINT_LIGHTS; i++)
+        //Травка/Окна
+        glBindVertexArray(vegetationVAO);
+        glBindTexture(GL_TEXTURE_2D, texture3);
+        for(std::map<float,glm::vec3>::reverse_iterator it = sorted.rbegin(); it != sorted.rend(); ++it)
         {
             model = glm::mat4(1.0f);
-            model = glm::translate(model, pointLightPositions[i]);
-            model = glm::scale(model, glm::vec3(0.1f));
-            lampShader.setMat4("model", model);
-            glDrawArrays(GL_TRIANGLES, 0, 36);
+            model = glm::translate(model, it->second);
+            ourShader.setMat4("model", model);
+            glDrawArrays(GL_TRIANGLES, 0, 6);
         }
+        glBindVertexArray(0);
         
+        // второй проход
+        glBindFramebuffer(GL_FRAMEBUFFER, 0); // возвращаем буфер кадра по умолчанию
+        glDisable(GL_DEPTH_TEST);
+        glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT);
+        
+        screenShader.Use();
+        glBindVertexArray(quadVAO);
+        glBindTexture(GL_TEXTURE_2D, texColorBuffer);
+        glDrawArrays(GL_TRIANGLES, 0, 6);
         
         //Смена буферов
         glfwSwapBuffers(window);
@@ -762,75 +717,6 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
     // и приложение после этого закроется
     if(key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
         glfwSetWindowShouldClose(window, GL_TRUE);
-    
-    // Изменение яркости фонарика (если включен) кнопками-стрелками (вверх и вниз)
-    if(key == GLFW_KEY_UP && action == GLFW_PRESS && flashlight)
-    {
-        projDiffuseRate += 0.1f;
-        if(projDiffuseRate >= 0.7f)
-            projDiffuseRate = 0.7f;
-        projDiffuse = glm::vec3(projDiffuseRate);
-    }
-    
-    if(key == GLFW_KEY_DOWN && action == GLFW_PRESS && flashlight)
-    {
-        projDiffuseRate -= 0.1f;
-        if(projDiffuseRate <= 0.0f)
-            projDiffuseRate = 0.0f;
-        projDiffuse = glm::vec3(projDiffuseRate);
-    }
-    
-    //Освещение
-    if(key == GLFW_KEY_1 && action == GLFW_PRESS)
-    {
-        if (lamps)
-        {
-            pointAmbient      = glm::vec3(0.0f);
-            pointDiffuse      = glm::vec3(0.0f);
-            pointSpecular     = glm::vec3(0.0f);
-            lamps = false;
-        } else
-        {
-            pointAmbient      = glm::vec3(0.05f);
-            pointDiffuse      = glm::vec3(0.8f);
-            pointSpecular     = glm::vec3(1.0f);
-            lamps = true;
-        }
-    }
-    
-    if(key == GLFW_KEY_2 && action == GLFW_PRESS)
-    {
-        if (sun)
-        {
-            dirAmbient      = glm::vec3(0.0f);
-            dirDiffuse      = glm::vec3(0.0f);
-            dirSpecular     = glm::vec3(0.0f);
-            sun = false;
-        } else
-        {
-            dirAmbient      = glm::vec3(0.05f);
-            dirDiffuse      = glm::vec3(0.4f);
-            dirSpecular     = glm::vec3(0.5f);
-            sun = true;
-        }
-    }
-    
-    if(key == GLFW_KEY_3 && action == GLFW_PRESS)
-    {
-        if (flashlight)
-        {
-            projAmbient      = glm::vec3(0.0f);
-            projDiffuse      = glm::vec3(0.0f);
-            projSpecular     = glm::vec3(0.0f);
-            flashlight = false;
-        } else
-        {
-            projAmbient      = glm::vec3(0.05f);
-            projDiffuse      = glm::vec3(1.0f);
-            projSpecular     = glm::vec3(1.0f);
-            flashlight = true;
-        }
-    }
 }
 
 void doMovement()
@@ -889,4 +775,49 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
       fov = 1.0f;
   if(fov >= 45.0f)
       fov = 45.0f;
+}
+
+unsigned int loadCubemap(std::vector<std::string> faces)
+{
+    unsigned int textureID;
+    glGenTextures(1, &textureID);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, textureID);
+
+    //Параметры семплинга
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+    
+    for(GLuint i = 0; i < faces.size(); i++)
+    {
+        //Загрузка lodepng
+        std::vector<unsigned char> image; //Пиксели будут тут
+        unsigned texwidth, texheight;
+        //Декодирование
+        unsigned error = lodepng::decode(image, texwidth, texheight, faces[i]);
+
+        //Ошибки
+        if(error) std::cout << "DECODER::ERROR " << error << ": " << lodepng_error_text(error) << std::endl;
+        
+        unsigned char* data = &image[0]; //RGBARGBARGBA...
+        
+        if (data){
+            //Генерация текстуры
+            glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGBA, texwidth, texheight, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+            //Генерация мипмапов
+            glGenerateMipmap(GL_TEXTURE_2D);
+        }
+        else
+        {
+            std::cout << "ERROR IN TEXTURE LOADING" << std::endl;
+        }
+        
+        //Освобождение памяти и отвзяка от изображения
+           std::vector<unsigned char>().swap(image);
+           glBindTexture(GL_TEXTURE_2D, 0);
+    }
+
+    return textureID;
 }
